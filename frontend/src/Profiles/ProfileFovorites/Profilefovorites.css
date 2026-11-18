@@ -1,5 +1,2 @@
-.no-favorites {
-    text-align: center;
-    color: #888;
-    margin-top: 50px;
-}
+/* Favorites tab locally scoped styles. Track card styles are shared. */
+.ssp-favorites-list { min-width: 0; }

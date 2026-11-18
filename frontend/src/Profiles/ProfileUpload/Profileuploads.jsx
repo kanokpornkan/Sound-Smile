@@ -1,323 +1,115 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { FiMusic, FiPlus } from "react-icons/fi";
+import ProfileTrackCard from "../ProfileTrackCard";
+import useProfileAudio from "../useProfileAudio";
+import { PROFILE_API, downloadProfileSong, getStoredProfile, getToken, showLoginRequired } from "../profileActions";
 import "./Profileuploads.css";
 
 function Profileuploads() {
+  const navigate = useNavigate();
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPlaying, setCurrentPlaying] = useState(null);
-  const [durations, setDurations] = useState({});
-  const [currentTimes, setCurrentTimes] = useState({});
   const [favorites, setFavorites] = useState([]);
+  const audio = useProfileAudio();
 
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const fetchUploads = useCallback(async () => {
+    const user = getStoredProfile();
+    if (!user?._id) { setLoading(false); return; }
+    try {
+      const res = await axios.get(`${PROFILE_API}/api/user/${user._id}/uploads`);
+      setUploads(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Error fetching uploads:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadFavorites = useCallback(async () => {
+    const user = getStoredProfile();
+    const token = getToken();
+    if (!user?._id || !token) return;
+    try {
+      const res = await axios.get(`${PROFILE_API}/api/user/${user._id}/favorites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFavorites((Array.isArray(res.data) ? res.data : []).filter(Boolean).map((song) => song._id));
+    } catch (error) {
+      console.error("Error loading favorites:", error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchUploads();
     loadFavorites();
-
-    const handleUploadSuccess = () => {
-      console.log("Upload successful, refreshing...");
-      fetchUploads();
-    };
-
-    window.addEventListener("uploadSuccess", handleUploadSuccess);
+    window.addEventListener("uploadSuccess", fetchUploads);
+    window.addEventListener("favoriteChanged", loadFavorites);
     return () => {
-      window.removeEventListener("uploadSuccess", handleUploadSuccess);
+      window.removeEventListener("uploadSuccess", fetchUploads);
+      window.removeEventListener("favoriteChanged", loadFavorites);
     };
-  }, []);
-
-  const fetchUploads = async () => {
-    try {
-      if (!user?._id) {
-        console.log("No user ID found");
-        setLoading(false);
-        return;
-      }
-
-      const res = await axios.get(
-        `http://localhost:5000/api/user/${user._id}/uploads`
-      );
-
-      console.log("User uploads:", res.data);
-      setUploads(res.data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching uploads:", err);
-      setLoading(false);
-    }
-  };
-
-  const loadFavorites = async () => {
-    if (!user._id || !token) return;
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/api/user/${user._id}/favorites`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setFavorites(res.data.map(song => song._id));
-    } catch (err) {
-      console.error("Error loading favorites:", err);
-    }
-  };
+  }, [fetchUploads, loadFavorites]);
 
   const handleLike = async (id) => {
+    const token = getToken();
+    if (!token) { showLoginRequired(); return; }
     try {
-      if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "กรุณาเข้าสู่ระบบ",
-          text: "คุณต้องเข้าสู่ระบบก่อนกดถูกใจ",
-          timer: 2000,
-          showConfirmButton: false,
-          toast: true,
-          position: "top-end",
-        });
-        return;
-      }
-
-      const isFav = favorites.includes(id);
-
-      if (isFav) {
-        await axios.delete(
-          `http://localhost:5000/api/songs/${id}/favorite`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setFavorites(prev => prev.filter(f => f !== id));
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      if (favorites.includes(id)) {
+        await axios.delete(`${PROFILE_API}/api/songs/${id}/favorite`, config);
+        setFavorites((previous) => previous.filter((entry) => entry !== id));
       } else {
-        await axios.post(
-          `http://localhost:5000/api/songs/${id}/favorite`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setFavorites(prev => [...prev, id]);
+        await axios.post(`${PROFILE_API}/api/songs/${id}/favorite`, {}, config);
+        setFavorites((previous) => [...previous, id]);
       }
-
       window.dispatchEvent(new Event("favoriteChanged"));
-    } catch (err) {
-      console.error("Like error:", err);
+    } catch (error) {
+      console.error("Like error:", error);
+      Swal.fire({ icon: "error", title: "ไม่สามารถเปลี่ยนรายการโปรดได้", text: error.response?.data?.message || error.message });
     }
   };
 
   const handleDownload = async (song) => {
-    try {
-      if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "คุณยังไม่ได้เข้าสู่ระบบ",
-          text: "กรุณาเข้าสู่ระบบก่อนดาวน์โหลดเพลง",
-          timer: 2000,
-          showConfirmButton: false,
-          toast: true,
-          position: "top-end",
-        });
-        return;
-      }
-
-      const response = await axios.get(
-        `http://localhost:5000/${song.filePath}`,
-        {
-          responseType: "blob",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${song.title}.mp3`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      await axios.post(
-        `http://localhost:5000/api/songs/${song._id}/download`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "ดาวน์โหลดเพลงสำเร็จ 🎵",
-        text: `คุณดาวน์โหลดเพลง "${song.title}" เรียบร้อยแล้ว`,
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: "top-end",
-      });
-    } catch (err) {
-      console.error("Download error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "เกิดข้อผิดพลาด",
-        text: `ไม่สามารถดาวน์โหลดเพลง "${song.title}" ได้`,
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: "top-end",
-      });
-    }
-  };
-
-  const togglePlay = (id) => {
-    const audio = document.getElementById(`audio-${id}`);
-    if (!audio) return;
-
-    if (currentPlaying && currentPlaying !== id) {
-      const prevAudio = document.getElementById(`audio-${currentPlaying}`);
-      if (prevAudio) {
-        prevAudio.pause();
-        prevAudio.currentTime = 0;
-      }
-    }
-
-    if (audio.paused) {
-      audio.play();
-      setCurrentPlaying(id);
-
-      const interval = setInterval(() => {
-        setCurrentTimes((prev) => ({ ...prev, [id]: audio.currentTime }));
-      }, 200);
-
-      audio.onended = () => {
-        clearInterval(interval);
-        setCurrentPlaying(null);
-        setCurrentTimes((prev) => ({ ...prev, [id]: 0 }));
-      };
-    } else {
-      audio.pause();
-      audio.currentTime = 0;
-      setCurrentPlaying(null);
-      setCurrentTimes((prev) => ({ ...prev, [id]: 0 }));
-    }
-  };
-
-  const formatTime = (seconds) => {
-    if (!seconds) return "0:00";
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, "0")}`;
+    await downloadProfileSong(song, getToken());
   };
 
   if (loading) {
-    return (
-      <div className="uploads-container">
-        <p className="loading-text">กำลังโหลด...</p>
-      </div>
-    );
-  }
-
-  if (uploads.length === 0) {
-    return (
-      <div className="uploads-container">
-        <div className="no-upload">
-          <h2>🎵 ยังไม่มีเพลงที่อัพโหลด</h2>
-          <p>อัพโหลดเพลงของคุณเพื่อแสดงในรายการนี้</p>
-        </div>
-      </div>
-    );
+    return <div className="ssp-panel-state"><FiMusic /><h3>กำลังโหลดเพลงของคุณ...</h3></div>;
   }
 
   return (
-    <div className="songlist-wrapper">
-      <div className="song-grid">
-        {uploads.map((song) => (
-          <div
-            className="song-box"
-            key={song._id}
-            onClick={() => navigate(`/song/${song._id}`)}
-            style={{ cursor: "pointer" }}
-          >
-            <div
-              className="heart-icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLike(song._id);
-              }}
-            >
-              {favorites.includes(song._id) ? "💖" : "🤍"}
-            </div>
-
-            <div className="wave-anim">
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-
-            <div className="song-info">
-              <h3>{song.title}</h3>
-              <p>{song.artist}</p>
-            </div>
-
-            {song.type && song.subtype && (
-              <div className="song-tags">
-                <span>#{song.type}</span>
-                <span>#{song.subtype}</span>
-              </div>
-            )}
-
-            <div className="song-meta">
-              <span>
-                ⏱ {formatTime(currentTimes[song._id] || 0)} /{" "}
-                {formatTime(durations[song._id] || 0)}
-              </span>
-              {song.bpm && <span>{song.bpm} BPM</span>}
-            </div>
-
-            <div className="song-controls" onClick={(e) => e.stopPropagation()}>
-              <button
-                className={`song-play-btn ${
-                  currentPlaying === song._id ? "active" : ""
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlay(song._id);
-                }}
-              >
-                {currentPlaying === song._id ? "⏹ หยุด" : "▶ เล่น"}
-              </button>
-
-              <button
-                className="song-download-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(song);
-                }}
-              >
-                ⬇ ดาวน์โหลด
-              </button>
-            </div>
-
-            <div className="song-progress">
-              <div
-                className="progress-fill"
-                style={{
-                  width: durations[song._id]
-                    ? `${(currentTimes[song._id] / durations[song._id]) * 100}%`
-                    : "0%",
-                }}
-              ></div>
-            </div>
-
-            <audio
-              id={`audio-${song._id}`}
-              src={`http://localhost:5000/${song.filePath}`}
-              onLoadedMetadata={(e) =>
-                setDurations((prev) => ({
-                  ...prev,
-                  [song._id]: e.target.duration,
-                }))
-              }
-            />
-          </div>
-        ))}
+    <div className="ssp-uploads-list">
+      <div className="ssp-collection-bar">
+        <div><h3>My uploads</h3><p>เพลงที่คุณแบ่งปันกับคอมมูนิตี้</p></div>
+        <button type="button" className="ssp-collection-add" onClick={() => navigate("/upload")}><FiPlus /> เพิ่มเพลง</button>
       </div>
+      {uploads.length === 0 ? (
+        <div className="ssp-panel-state"><FiMusic /><h3>ยังไม่มีเพลงที่อัปโหลด</h3><p>เริ่มเพิ่มผลงานของคุณ เพื่อให้คนอื่นได้ค้นพบเสียงใหม่ ๆ</p><button type="button" onClick={() => navigate("/upload")}>อัปโหลดเพลงแรก</button></div>
+      ) : (
+        <div className="ssp-track-grid">
+          {uploads.map((song) => (
+            <ProfileTrackCard
+              key={song._id}
+              song={song}
+              favorite={favorites.includes(song._id)}
+              onFavorite={() => handleLike(song._id)}
+              onDownload={() => handleDownload(song)}
+              onOpen={() => navigate(`/song/${song._id}`)}
+              isPlaying={audio.currentPlaying === song._id}
+              duration={audio.durations[song._id] || 0}
+              currentTime={audio.currentTimes[song._id] || 0}
+              registerAudio={audio.registerAudio}
+              onMetadata={audio.onMetadata}
+              onTimeUpdate={audio.onTimeUpdate}
+              onEnded={audio.onEnded}
+              onTogglePlay={() => audio.togglePlay(song._id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

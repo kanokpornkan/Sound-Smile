@@ -1,82 +1,74 @@
-import React, { useState, useEffect, useCallback } from "react";
-import "./Profile.css";
-
-import {
-  FaFacebook,
-  FaInstagram
-} from "react-icons/fa";
-
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaFacebook, FaInstagram } from "react-icons/fa";
 import { SiTiktok } from "react-icons/si";
-
 import {
-  FiEdit2,
-  FiMusic,
-  FiDownload,
-  FiHeart,
-  FiArrowUpRight,
-  FiX
+  FiArrowRight, FiCamera, FiDownload, FiEdit2,
+  FiHeart, FiHeadphones, FiMusic, FiX,
 } from "react-icons/fi";
-
 import ProfileUpload from "./ProfileUpload/Profileuploads";
 import ProfileDownload from "./ProfileDownload/Profiledownload";
 import ProfileFavorites from "./ProfileFovorites/Profilefovorites";
-import EditProfile from "../editprofile/editprofile";
+import EditProfile from "./editprofile/editprofile";
+import defaultAvatar from "../assets/logo.png";
+import "./Profile.css";
 
 const API = "http://localhost:5000";
 
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function imageUrl(path) {
+  if (!path) return defaultAvatar;
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  return `${API}/${String(path).replace(/^\/+/, "")}`;
+}
+
 function Profile() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("uploads");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [user, setUser] = useState(null);
-
-  const [uploadCount, setUploadCount] = useState(0);
-  const [downloadCount, setDownloadCount] = useState(0);
-  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [user, setUser] = useState(readStoredUser);
+  const [counts, setCounts] = useState({ uploads: 0, downloads: 0, favorites: 0 });
 
   const fetchUserData = useCallback(async () => {
+    const cachedUser = readStoredUser();
+    const token = localStorage.getItem("token");
+    if (cachedUser) setUser(cachedUser);
+    if (!cachedUser?._id || !token) return;
+
+    const auth = { Authorization: `Bearer ${token}` };
     try {
-      const storedUser = localStorage.getItem("user");
-      const userData = storedUser
-        ? JSON.parse(storedUser)
-        : null;
+      const [fresh, uploaded, downloaded, liked] = await Promise.allSettled([
+        fetch(`${API}/auth/user`, { headers: auth }),
+        fetch(`${API}/api/user/${cachedUser._id}/uploads`),
+        fetch(`${API}/api/user/${cachedUser._id}/downloads`, { headers: auth }),
+        fetch(`${API}/api/user/${cachedUser._id}/favorites`, { headers: auth }),
+      ]);
 
-      const userId = userData?._id;
-      const token = localStorage.getItem("token");
-
-      if (!userId) return;
-
-      setUser(userData);
-
-      const headers = {
-        Authorization: `Bearer ${token}`
-      };
-
-      const [uploads, downloads, favorites] =
-        await Promise.allSettled([
-          fetch(`${API}/api/user/${userId}/uploads`),
-          fetch(`${API}/api/user/${userId}/downloads`, {
-            headers
-          }),
-          fetch(`${API}/api/user/${userId}/favorites`, {
-            headers
-          })
-        ]);
-
-      if (uploads.status === "fulfilled" && uploads.value.ok) {
-        const data = await uploads.value.json();
-        setUploadCount(Array.isArray(data) ? data.length : 0);
+      if (fresh.status === "fulfilled" && fresh.value.ok) {
+        const data = await fresh.value.json();
+        if (data?._id) {
+          setUser(data);
+          localStorage.setItem("user", JSON.stringify(data));
+        }
       }
-
-      if (downloads.status === "fulfilled" && downloads.value.ok) {
-        const data = await downloads.value.json();
-        setDownloadCount(Array.isArray(data) ? data.length : 0);
-      }
-
-      if (favorites.status === "fulfilled" && favorites.value.ok) {
-        const data = await favorites.value.json();
-        setFavoriteCount(Array.isArray(data) ? data.length : 0);
-      }
-
+      const results = [uploaded, downloaded, liked];
+      const values = await Promise.all(results.map(async (r) => {
+        if (r.status !== "fulfilled" || !r.value.ok) return null;
+        const data = await r.value.json();
+        return Array.isArray(data) ? data.length : null;
+      }));
+      setCounts((old) => ({
+        uploads: values[0] ?? old.uploads,
+        downloads: values[1] ?? old.downloads,
+        favorites: values[2] ?? old.favorites,
+      }));
     } catch (error) {
       console.error("Profile loading error:", error);
     }
@@ -84,338 +76,185 @@ function Profile() {
 
   useEffect(() => {
     fetchUserData();
-
-    const handleProfileUpdated = (event) => {
-      if (event.detail) {
+    const handleUpdated = (event) => {
+      if (event.detail?._id) {
         setUser(event.detail);
-        localStorage.setItem(
-          "user",
-          JSON.stringify(event.detail)
-        );
+        localStorage.setItem("user", JSON.stringify(event.detail));
+      } else {
+        fetchUserData();
       }
     };
-
-    window.addEventListener("uploadSuccess", fetchUserData);
-    window.addEventListener("favoriteChanged", fetchUserData);
-    window.addEventListener("profileUpdated", handleProfileUpdated);
-
+    const refresh = () => fetchUserData();
+    window.addEventListener("profileUpdated", handleUpdated);
+    ["uploadSuccess", "downloadSuccess", "favoriteChanged", "userLoggedIn"].forEach((name) => {
+      window.addEventListener(name, refresh);
+    });
     return () => {
-      window.removeEventListener("uploadSuccess", fetchUserData);
-      window.removeEventListener("favoriteChanged", fetchUserData);
-      window.removeEventListener("profileUpdated", handleProfileUpdated);
+      window.removeEventListener("profileUpdated", handleUpdated);
+      ["uploadSuccess", "downloadSuccess", "favoriteChanged", "userLoggedIn"].forEach((name) => {
+        window.removeEventListener(name, refresh);
+      });
     };
   }, [fetchUserData]);
 
+  useEffect(() => {
+    if (!showEditModal) return;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setShowEditModal(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showEditModal]);
+
   const handleUpdateProfile = (updatedUser) => {
-    if (updatedUser) {
+    if (updatedUser?._id) {
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-    } else {
-      fetchUserData();
     }
-
     setShowEditModal(false);
   };
 
-  const getAvatar = () => {
-    const avatar = user?.avatar || user?.picture;
-
-    if (!avatar) {
-      return `${API}/uploads/logo.png`;
-    }
-
-    if (avatar.startsWith("http") || avatar.startsWith("data:")) {
-      return avatar;
-    }
-
-    return `${API}/${avatar.replace(/^\/+/, "")}`;
-  };
-
   const tabs = [
-    {
-      id: "uploads",
-      label: "Uploads",
-      count: uploadCount,
-      icon: <FiMusic />
-    },
-    {
-      id: "downloads",
-      label: "Downloads",
-      count: downloadCount,
-      icon: <FiDownload />
-    },
-    {
-      id: "favorites",
-      label: "Favorites",
-      count: favoriteCount,
-      icon: <FiHeart />
-    }
+    { id: "uploads", label: "เพลงที่อัปโหลด", count: counts.uploads, icon: <FiMusic /> },
+    { id: "downloads", label: "ประวัติดาวน์โหลด", count: counts.downloads, icon: <FiDownload /> },
+    { id: "favorites", label: "รายการโปรด", count: counts.favorites, icon: <FiHeart /> },
   ];
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "uploads":
-        return <ProfileUpload />;
-
-      case "downloads":
-        return <ProfileDownload />;
-
-      case "favorites":
-        return <ProfileFavorites />;
-
-      default:
-        return null;
-    }
+    if (activeTab === "uploads") return <ProfileUpload />;
+    if (activeTab === "downloads") return <ProfileDownload />;
+    return <ProfileFavorites />;
   };
 
+  if (!user?._id) {
+    return (
+      <main className="ssp-profile-page">
+        <div className="ssp-shell">
+          <div className="ssp-guest-panel">
+            <FiHeadphones />
+            <h1>พื้นที่เพลงของคุณ</h1>
+            <p>เข้าสู่ระบบเพื่อดูโปรไฟล์ เพลงที่อัปโหลด และรายการโปรด</p>
+            <button type="button" onClick={() => navigate("/login")}>เข้าสู่ระบบ <FiArrowRight /></button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="ss-profile-page">
-
-      {/* PROFILE HEADER */}
-
-      <section className="ss-profile-header">
-
-        <div className="ss-profile-heading">
-          <div>
-            <span className="ss-profile-overline">
-              SHARK SOUND / MEMBER SPACE
-            </span>
-
-            <h1>My Profile</h1>
-
-            <p>
-              Your music. Your space. Your sound.
-            </p>
+    <main className="ssp-profile-page">
+      <div className="ssp-shell">
+        <section className="ssp-profile-hero" aria-label="ข้อมูลโปรไฟล์">
+          <div className="ssp-hero-topline">
+            <span><i /> SOUND SHARE / MY PROFILE</span>
+            <span>CREATOR SPACE — 01 / 03</span>
           </div>
 
-          <button
-            className="ss-edit-profile-btn"
-            onClick={() => setShowEditModal(true)}
-          >
-            <FiEdit2 />
-            Edit Profile
-          </button>
-        </div>
-
-        {/* USER INFORMATION */}
-
-        <div className="ss-profile-card">
-
-          <div className="ss-avatar-wrap">
-
-            <img
-              className="ss-profile-avatar"
-              src={getAvatar()}
-              alt="Profile"
-              onError={(e) => {
-                e.currentTarget.src = `${API}/uploads/logo.png`;
-              }}
-            />
-
-            <button
-              className="ss-avatar-edit"
-              onClick={() => setShowEditModal(true)}
-              title="Edit profile picture"
-            >
-              <FiEdit2 />
-            </button>
-
-          </div>
-
-          <div className="ss-profile-user-info">
-
-            <span className="ss-member-label">
-              MEMBER
-            </span>
-
-            <h2>
-              {user?.username || "Music Lover"}
-            </h2>
-
-            <p className="ss-profile-email">
-              {user?.email || "Welcome to SHARK SOUND"}
-            </p>
-
-            <p className="ss-profile-bio">
-              {user?.bio || "Add a bio to tell everyone about yourself."}
-            </p>
-
-            <div className="ss-profile-social">
-
-              {user?.facebook && (
-                <a
-                  href={user.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Facebook"
-                >
-                  <FaFacebook />
-                </a>
-              )}
-
-              {user?.instagram && (
-                <a
-                  href={user.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Instagram"
-                >
-                  <FaInstagram />
-                </a>
-              )}
-
-              {user?.tiktok && (
-                <a
-                  href={user.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="TikTok"
-                >
-                  <SiTiktok />
-                </a>
-              )}
-
-              {!user?.facebook &&
-                !user?.instagram &&
-                !user?.tiktok && (
-                  <span className="ss-no-social">
-                    No social links added
-                  </span>
-                )}
-
+          <div className="ssp-hero-content">
+            <div className="ssp-hero-copy">
+              <span className="ssp-hero-eyebrow">WELCOME TO YOUR SPACE</span>
+              <h1>Every sound <span>starts here.</span></h1>
+              <p>โปรไฟล์ของคุณคือพื้นที่เก็บผลงาน เสียงที่ชื่นชอบ และเรื่องราวของคุณบน SOUND SHARE</p>
+              <div className="ssp-hero-discover"><FiHeadphones /> LISTEN · CREATE · SHARE</div>
             </div>
 
+            <div className="ssp-identity-card">
+              <div className="ssp-identity-top"><span>YOUR CREATOR PROFILE</span><span className="ssp-live-dot" /></div>
+              <div className="ssp-identity-main">
+                <div className="ssp-avatar-wrap">
+                  <img
+                    className="ssp-avatar"
+                    src={imageUrl(user.avatar || user.picture)}
+                    onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = defaultAvatar; }}
+                    alt={`รูปโปรไฟล์ของ ${user.username || "สมาชิก"}`}
+                  />
+                  <button
+                    type="button"
+                    className="ssp-avatar-pencil"
+                    aria-label="แก้ไขโปรไฟล์"
+                    title="คลิกเพื่อแก้ไขโปรไฟล์"
+                    onClick={() => setShowEditModal(true)}
+                  ><FiEdit2 /></button>
+                </div>
+                <div className="ssp-identity-text">
+                  <span className="ssp-member-chip">{user.plan || "FREE"} MEMBER</span>
+                  <h2>{user.username || "Music Lover"}</h2>
+                  <p>{user.email || ""}</p>
+                </div>
+              </div>
+              <p className="ssp-identity-bio">{user.bio || "เล่าเรื่องราวของคุณได้ โดยกดรูปดินสอที่รูปโปรไฟล์"}</p>
+              <div className="ssp-identity-bottom">
+                <div className="ssp-profile-socials">
+                  {user.facebook && <a href={user.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" title="Facebook"><FaFacebook /></a>}
+                  {user.instagram && <a href={user.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><FaInstagram /></a>}
+                  {user.tiktok && <a href={user.tiktok} target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><SiTiktok /></a>}
+                  {!user.facebook && !user.instagram && !user.tiktok && <span className="ssp-social-muted">เพิ่มลิงก์ Social Media ได้ในโปรไฟล์</span>}
+                </div>
+                <span className="ssp-edit-hint"><FiCamera /> กดดินสอที่รูปเพื่อแก้ไข</span>
+              </div>
+            </div>
           </div>
+          <div className="ssp-hero-bottomline"><span>YOUR PERSONAL MUSIC SPACE</span><span>SOUND SHARE / COMMUNITY</span></div>
+        </section>
 
-        </div>
-
-        {/* STATISTICS */}
-
-        <div className="ss-profile-stats">
-
-          <div className="ss-stat-item">
-            <span className="ss-stat-icon">
-              <FiMusic />
-            </span>
-
+        <section className="ssp-overview" aria-label="สรุปผลงาน">
+          <div className="ssp-section-heading">
             <div>
-              <strong>{uploadCount}</strong>
-              <span>Uploads</span>
+              <span className="ssp-section-kicker">ACCOUNT OVERVIEW</span>
+              <h2>ภาพรวมโปรไฟล์ของคุณ</h2>
+              <p>ทุกเสียงที่คุณสร้างและบันทึกไว้ รวมอยู่ที่นี่</p>
             </div>
           </div>
+          <div className="ssp-stat-grid">
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiMusic /></span><div><span>เพลงที่อัปโหลด</span><strong>{counts.uploads}</strong><small>UPLOADS</small></div></div>
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiDownload /></span><div><span>ประวัติดาวน์โหลด</span><strong>{counts.downloads}</strong><small>DOWNLOADS</small></div></div>
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiHeart /></span><div><span>เพลงที่ชื่นชอบ</span><strong>{counts.favorites}</strong><small>FAVORITES</small></div></div>
+          </div>
+        </section>
 
-          <div className="ss-stat-divider" />
-
-          <div className="ss-stat-item">
-            <span className="ss-stat-icon">
-              <FiDownload />
-            </span>
-
+        <section className="ssp-library" aria-label="คลังเพลงของฉัน">
+          <div className="ssp-section-heading ssp-library-heading">
             <div>
-              <strong>{downloadCount}</strong>
-              <span>Downloads</span>
+              <span className="ssp-section-kicker">YOUR COLLECTION</span>
+              <h2>My Music Library</h2>
+              <p>จัดการเพลงที่อัปโหลด ดาวน์โหลด และบันทึกเป็นรายการโปรดได้ในที่เดียว</p>
+            </div>
+            <span className="ssp-library-mark"><FiMusic /></span>
+          </div>
+          <div className="ssp-library-panel">
+            <div className="ssp-tab-list" role="tablist" aria-label="เลือกหมวดคลังเพลง">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  id={`ssp-tab-${tab.id}`}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls="ssp-library-content"
+                  className={`ssp-tab ${activeTab === tab.id ? "is-active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.icon}<span>{tab.label}</span><b>{tab.count}</b>
+                </button>
+              ))}
+            </div>
+            <div id="ssp-library-content" role="tabpanel" aria-labelledby={`ssp-tab-${activeTab}`} className="ssp-tab-content">
+              {renderTabContent()}
             </div>
           </div>
-
-          <div className="ss-stat-divider" />
-
-          <div className="ss-stat-item">
-            <span className="ss-stat-icon">
-              <FiHeart />
-            </span>
-
-            <div>
-              <strong>{favoriteCount}</strong>
-              <span>Favorites</span>
-            </div>
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* MUSIC COLLECTION */}
-
-      <section className="ss-profile-library">
-
-        <div className="ss-library-heading">
-          <div>
-            <span className="ss-profile-overline">
-              YOUR COLLECTION
-            </span>
-
-            <h2>My Music Library</h2>
-
-            <p>
-              Manage your music and discover your collection.
-            </p>
-          </div>
-
-          <FiArrowUpRight className="ss-library-arrow" />
-        </div>
-
-        {/* TABS */}
-
-        <div className="ss-profile-tabs">
-
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`ss-profile-tab ${
-                activeTab === tab.id ? "active" : ""
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.icon}
-
-              <span>{tab.label}</span>
-
-              <span className="ss-tab-count">
-                {tab.count}
-              </span>
-            </button>
-          ))}
-
-        </div>
-
-        {/* TAB CONTENT */}
-
-        <div className="ss-profile-content">
-          {renderTabContent()}
-        </div>
-
-      </section>
-
-      {/* EDIT PROFILE MODAL */}
+        </section>
+      </div>
 
       {showEditModal && (
-        <div
-          className="ss-modal-overlay"
-          onClick={() => setShowEditModal(false)}
-        >
-
-          <div
-            className="ss-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-
-            <button
-              className="ss-modal-close"
-              onClick={() => setShowEditModal(false)}
-            >
-              <FiX />
-            </button>
-
-            <EditProfile
-              onClose={() => setShowEditModal(false)}
-              onUpdate={handleUpdateProfile}
-            />
-
+        <div className="ssp-modal-overlay" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setShowEditModal(false);
+        }}>
+          <div className="ssp-modal-panel" role="dialog" aria-modal="true" aria-label="แก้ไขโปรไฟล์">
+            <button type="button" className="ssp-modal-close" aria-label="ปิด" onClick={() => setShowEditModal(false)}><FiX /></button>
+            <EditProfile onClose={() => setShowEditModal(false)} onUpdate={handleUpdateProfile} />
           </div>
-
         </div>
       )}
-
     </main>
   );
 }

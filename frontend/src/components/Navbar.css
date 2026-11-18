@@ -1,430 +1,452 @@
-/* =========================
-   SHARK SOUND NAVBAR
-   Color: #DDDDDD / #19427D / #041228
-========================= */
+/* ===================================================
+   SOUND SHARE — Floating Capsule Navbar
+   Inspired by the provided rounded / floating reference
+   Theme: Navy #041228, Blue #19427D, Light Gray #DDDDDD
+   Scoped ssn- class names avoid altering other screens.
+=================================================== */
 
-body {
-  padding-top: 90px;
-}
-
-/* Navbar */
-.header {
-  position: fixed;
+/* Keep the capsule in the normal page layout. The old fixed header
+   did not reserve space and could overlap the top of every page.
+   Sticky keeps it visible while scrolling without hiding the page start. */
+.ssn-shell {
+  position: sticky;
+  z-index: 2000;
   top: 0;
-  left: 0;
   width: 100%;
-  min-height: 82px;
-  padding: 10px 5%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  box-sizing: border-box;
-  background: #041228;
-  color: #DDDDDD;
-  font-family: "Poppins", sans-serif;
-  z-index: 999;
-  border-bottom: 1px solid rgba(221, 221, 221, 0.12);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Logo */
-.header-left {
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
+  padding: 14px clamp(12px, 3.5vw, 44px) 14px;
+  /* ไม่โปร่งใสอีกต่อไป: พื้นที่หลังแคปซูลสีเดียวกับ Home / Member */
+  background-color: #dddddd !important;
+  background-image: none !important;
+  pointer-events: none;
+  font-family: "Poppins", "Segoe UI", sans-serif;
 }
 
-.logo-link {
-  display: flex;
+.ssn-pill {
+  max-width: 1330px;
+  min-height: 72px;
+  padding: 8px 12px 8px 20px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(183px, 1fr) auto minmax(244px, 1fr);
   align-items: center;
+  gap: 18px;
+  background: rgba(255, 255, 255, 0.97);
+  color: #041228;
+  border: 1px solid rgba(4, 18, 40, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(4, 18, 40, 0.11), 0 1px 3px rgba(4, 18, 40, 0.04);
+  pointer-events: auto;
 }
 
-.logo {
-  height: 58px;
-  width: auto;
-  object-fit: contain;
-  cursor: pointer;
-  transition: transform 0.25s ease;
-}
-
-.logo:hover {
-  transform: scale(1.04);
-}
-
-/* Navigation */
-.header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 24px;
-  min-width: 0;
-}
-
-/* Navigation Links */
-.nav-link {
+/* Brand */
+.ssn-brand {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 0;
-  color: #DDDDDD;
+  gap: 11px;
+  min-width: 0;
+  color: #041228;
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.2s ease;
+  width: max-content;
+  max-width: 100%;
 }
 
-.nav-link:hover {
-  color: #8DBBFF;
+.ssn-brand-mark {
+  position: relative;
+  flex: none;
+  width: 47px;
+  height: 47px;
+  border-radius: 17px;
+  overflow: hidden;
+  background: #080b20;
+  box-shadow: 0 3px 9px rgba(4, 18, 40, 0.14);
 }
 
-/* Home Button */
-.home-link {
-  padding: 9px 15px;
-  border: 1px solid rgba(221, 221, 221, 0.2);
-  border-radius: 9px;
-  background: rgba(25, 66, 125, 0.28);
-  transition: all 0.2s ease;
+/* Crop original large logo visually; no logo asset is modified. */
+.ssn-brand-mark img {
+  position: absolute;
+  width: 172px;
+  height: auto;
+  max-width: none;
+  left: -62px;
+  top: -18px;
+  pointer-events: none;
 }
 
-.home-link svg {
-  font-size: 16px;
-}
-
-.home-link:hover {
-  color: #FFFFFF;
-  background: #19427D;
-  border-color: #19427D;
-  transform: translateY(-1px);
-}
-
-/* Usage Info */
-.usage-info {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #DDDDDD;
-  font-size: 11px;
-  opacity: 0.8;
-  white-space: nowrap;
-}
-
-.usage-divider {
-  color: #19427D;
-}
-
-/* Member Info */
-.member-info {
+.ssn-brand-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-left: 14px;
-  border-left: 1px solid rgba(221, 221, 221, 0.2);
+  min-width: 0;
+}
+
+.ssn-brand-text strong {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.15;
   white-space: nowrap;
 }
 
-.member-label {
-  color: #9BAEC8;
-  font-size: 10px;
+.ssn-brand-text strong span { color: #19427d; }
+
+.ssn-brand-text small {
+  color: #8490a2;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
 }
 
-.member-plan {
-  color: #DDDDDD;
-  font-size: 13px;
-  font-weight: 600;
+/* Center navigation */
+.ssn-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(5px, 1vw, 16px);
 }
 
-.member-expire {
-  color: #9BAEC8;
-  font-size: 10px;
-}
-
-/* Login / Logout Button */
-.gradient-login-button {
+.ssn-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 21px;
-  border: 1px solid #19427D;
-  border-radius: 9px;
-  background: #19427D;
-  color: #FFFFFF;
-  font-family: "Poppins", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.gradient-login-button:hover {
-  background: #24569B;
-  border-color: #24569B;
-  box-shadow: 0 4px 14px rgba(25, 66, 125, 0.3);
-  transform: translateY(-1px);
-}
-
-.logout-button {
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
   background: transparent;
-  border-color: rgba(221, 221, 221, 0.25);
-  color: #DDDDDD;
-}
-
-.logout-button:hover {
-  background: #19427D;
-  border-color: #19427D;
-  color: #FFFFFF;
-}
-
-/* Account Actions */
-.account-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-/* Profile */
-.profile-link {
-  display: flex;
-  align-items: center;
+  color: #667084;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.35;
   text-decoration: none;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #19427D;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 160ms ease, color 160ms ease;
 }
 
-.avatar:hover {
-  border-color: #8DBBFF;
-  transform: scale(1.05);
+.ssn-link:hover,
+.ssn-link-active {
+  color: #19427d;
+  background: #edf3fb;
 }
 
-/* Icon Buttons */
-.icon-button {
-  position: relative;
+.ssn-dropdown-toggle { gap: 7px; }
+.ssn-mobile-only, .ssn-mobile-icon, .ssn-mobile-quota { display: none; }
+
+/* Right controls */
+.ssn-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 11px;
+  min-width: 0;
+}
+
+.ssn-icon-btn,
+.ssn-account-btn,
+.ssn-mobile-toggle {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #35465e;
+}
+
+.ssn-icon-btn {
+  position: relative;
   width: 38px;
   height: 38px;
-  padding: 0;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: #DDDDDD;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.icon-button:hover {
-  background: rgba(25, 66, 125, 0.4);
-  color: #8DBBFF;
-}
-
-/* Notifications */
-.notification-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.notification-dot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 8px;
-  height: 8px;
-  background: #E05252;
-  border: 2px solid #041228;
   border-radius: 50%;
 }
 
-.notification-dropdown {
+.ssn-icon-btn:hover,
+.ssn-account-btn:hover,
+.ssn-mobile-toggle:hover { background: #f0f5fc; }
+
+.ssn-notification-dot {
   position: absolute;
-  top: calc(100% + 14px);
-  right: 0;
-  width: 270px;
-  max-height: 350px;
-  overflow-y: auto;
-  background: #0B1D37;
-  border: 1px solid rgba(221, 221, 221, 0.12);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  top: 7px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #e65959;
+  border: 2px solid white;
+  border-radius: 50%;
 }
 
-.notification-item {
-  padding: 13px 15px;
-  border-bottom: 1px solid rgba(221, 221, 221, 0.08);
-  color: #DDDDDD;
-  font-size: 13px;
-  transition: background 0.2s ease;
+.ssn-account-btn {
+  height: 42px;
+  padding: 3px 7px 3px 3px;
+  gap: 6px;
+  border-radius: 999px;
 }
 
-.notification-item:last-child {
-  border-bottom: none;
+.ssn-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e4edfb;
 }
 
-.notification-item:hover {
-  background: rgba(25, 66, 125, 0.35);
-}
+.ssn-account-chevron { color: #697891; }
 
-.notification-item.unread {
+.ssn-register-link {
+  font-size: 12px;
   font-weight: 600;
+  color: #637188;
+  text-decoration: none;
 }
 
-.notification-empty {
-  padding: 16px;
-  margin: 0;
-  color: #9BAEC8;
-  text-align: center;
-  font-size: 13px;
+.ssn-register-link:hover { color: #19427d; }
+
+.ssn-primary-cta {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #19427d;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(25, 66, 125, 0.19);
+  transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
-/* Admin Dropdown */
-.admin-dropdown {
-  position: relative;
+.ssn-primary-cta:hover {
+  background: #0e305f;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 7px 17px rgba(25, 66, 125, 0.24);
+}
+
+/* Dropdowns */
+.ssn-dropdown-root { position: relative; }
+
+.ssn-dropdown {
+  position: absolute;
+  z-index: 2100;
+  top: calc(100% + 18px);
+  right: 0;
+  background: #fff;
+  color: #041228;
+  border: 1px solid #e4eaf1;
+  border-radius: 18px;
+  padding: 9px;
+  box-shadow: 0 16px 45px rgba(4, 18, 40, 0.17);
+  animation: ssn-pop-in 160ms ease both;
+}
+
+.ssn-admin-dropdown { min-width: 218px; }
+
+.ssn-dropdown > a,
+.ssn-dropdown > button {
   display: flex;
   align-items: center;
-}
-
-.admin-link {
+  width: 100%;
+  gap: 10px;
+  padding: 12px 13px;
+  background: none;
+  color: #34435c;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
   font-family: inherit;
 }
 
-.dropdown-arrow {
-  margin-left: 2px;
-  font-size: 12px;
-  transition: transform 0.2s ease;
+.ssn-dropdown > a:hover,
+.ssn-dropdown > button:hover { background: #edf3fb; color: #19427d; }
+
+.ssn-notification-dropdown {
+  width: min(330px, calc(100vw - 32px));
+  padding: 0;
+  overflow: hidden;
 }
 
-.admin-dropdown:hover .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: 205px;
-  padding: 7px;
-  background: #0B1D37;
-  border: 1px solid rgba(221, 221, 221, 0.12);
-  border-radius: 11px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
-}
-
-.dropdown-item {
-  display: block;
-  padding: 11px 13px;
-  border-radius: 7px;
-  color: #DDDDDD;
-  text-decoration: none;
+.ssn-popup-heading {
+  padding: 16px 18px;
   font-size: 13px;
-  transition: all 0.2s ease;
+  font-weight: 750;
+  border-bottom: 1px solid #eef1f5;
 }
 
-.dropdown-item:hover {
-  background: #19427D;
-  color: #FFFFFF;
+.ssn-notification-list { max-height: 320px; overflow-y: auto; }
+.ssn-notification-item {
+  padding: 13px 18px;
+  border-bottom: 1px solid #edf0f5;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #48576d;
 }
 
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
+.ssn-notification-item:last-child { border-bottom: none; }
+.ssn-notification-item.is-unread { background: #f4f8fd; font-weight: 650; }
+.ssn-notification-empty { padding: 22px; text-align: center; color: #79869b; font-size: 12px; }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ssn-account-dropdown { width: 258px; }
+
+.ssn-account-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 13px 15px;
+  border-bottom: 1px solid #edf0f5;
+  overflow-wrap: anywhere;
 }
 
-/* Tablet */
-@media (max-width: 1100px) {
-  .header {
-    padding: 10px 3%;
-  }
+.ssn-account-summary strong { font-size: 13px; }
+.ssn-plan-label {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eaf2fb;
+  color: #19427d;
+  font-size: 10px;
+  font-weight: 750;
+}
 
-  .header-right {
-    gap: 15px;
-  }
+.ssn-account-summary small { font-size: 10px; color: #7c8798; }
 
-  .usage-info {
+.ssn-account-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 9px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f4f7fb;
+}
+
+.ssn-account-usage span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ssn-account-usage b { color: #19427d; }
+.ssn-account-usage small { color: #8795a7; font-size: 10px; line-height: 1.5; }
+.ssn-dropdown > .ssn-signout { color: #b94444; }
+.ssn-dropdown > .ssn-signout:hover { background: #fff0f0; color: #9f3030; }
+
+.ssn-mobile-toggle { display: none; }
+
+@keyframes ssn-pop-in {
+  from { opacity: 0; transform: translateY(-5px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 1160px) {
+  .ssn-pill {
+    gap: 8px;
+    grid-template-columns: minmax(170px, 1fr) auto minmax(190px, 1fr);
+    padding-left: 12px;
+  }
+  .ssn-brand-text small { letter-spacing: 1px; }
+  .ssn-link { padding: 8px 9px; font-size: 12px; }
+  .ssn-actions { gap: 5px; }
+  .ssn-primary-cta { padding: 0 15px; }
+}
+
+@media (max-width: 980px) {
+  .ssn-pill {
+    grid-template-columns: 1fr auto;
+    min-height: 66px;
+    padding: 7px 10px 7px 15px;
+  }
+  .ssn-nav {
     display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: clamp(12px, 3.5vw, 44px);
+    right: clamp(12px, 3.5vw, 44px);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 15px;
+    max-width: 1330px;
+    margin: 0 auto;
+    border: 1px solid #e4eaf1;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(4,18,40,.15);
   }
-
-  .nav-link {
+  .ssn-nav.ssn-nav-open { display: flex; }
+  .ssn-nav .ssn-link {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
     font-size: 13px;
   }
+  .ssn-mobile-icon { display: inline-block; font-size: 13px; }
+  .ssn-mobile-only { display: flex; }
+  .ssn-mobile-toggle { display: inline-flex; width: 40px; height: 40px; border-radius: 50%; }
+  .ssn-admin-dropdown { position: static; width: 100%; box-shadow: none; margin-top: 5px; }
+  .ssn-mobile-quota {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 13px;
+    padding: 13px 15px 3px;
+    font-size: 11px;
+    color: #58677e;
+    border-top: 1px solid #eef1f5;
+  }
+  .ssn-mobile-quota small { width: 100%; color: #19427d; }
+  .ssn-mobile-logout { color: #b94444; }
 }
 
-/* Mobile */
-@media (max-width: 760px) {
-  body {
-    padding-top: 130px;
-  }
+@media (max-width: 650px) {
+  .ssn-shell { padding-top: 12px; padding-bottom: 12px; }
+  .ssn-pill { min-height: 60px; }
+  .ssn-brand-mark { width: 40px; height: 40px; border-radius: 14px; }
+  .ssn-brand-mark img { transform: scale(.87); transform-origin: top left; }
+  .ssn-brand-text strong { font-size: 13px; }
+  .ssn-brand-text small { font-size: 8px; letter-spacing: .85px; }
+  .ssn-account-root { display: none; }
+  .ssn-register-link { display: none; }
+  .ssn-primary-cta { min-height: 39px; padding: 0 12px; gap: 6px; }
+  .ssn-primary-cta svg:first-child { display: none; }
+  .ssn-primary-cta span { font-size: 11px; }
+  .ssn-icon-btn { width: 33px; height: 36px; }
+  .ssn-mobile-toggle { width: 35px; height: 36px; }
+}
 
-  .header {
-    min-height: auto;
-    padding: 10px 4%;
-    flex-direction: column;
-    gap: 10px;
-  }
+@media (max-width: 440px) {
+  .ssn-shell { padding: 12px 9px; }
+  .ssn-pill { padding-left: 11px; gap: 4px; }
+  .ssn-brand { gap: 7px; }
+  .ssn-brand-text strong { font-size: 12px; }
+  .ssn-brand-text small { letter-spacing: .3px; }
+  .ssn-primary-cta { display: none; }
+  .ssn-nav { left: 9px; right: 9px; }
+}
 
-  .logo {
-    height: 43px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .ssn-pill *, .ssn-pill *::before, .ssn-pill *::after { animation: none !important; transition: none !important; }
+}
 
-  .header-right {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px 17px;
-  }
-
-  .nav-link {
-    font-size: 12px;
-  }
-
-  .home-link {
-    padding: 7px 11px;
-  }
-
-  .member-info {
-    display: none;
-  }
-
-  .gradient-login-button {
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-
-  .avatar {
-    width: 32px;
-    height: 32px;
-  }
-
-  .notification-dropdown {
-    right: -45px;
-    width: 250px;
+/* Prevent very tall mobile menus from going below the screen */
+@media (max-width: 980px) {
+  .ssn-nav.ssn-nav-open {
+    max-height: calc(100dvh - 106px);
+    overflow-y: auto;
   }
 }

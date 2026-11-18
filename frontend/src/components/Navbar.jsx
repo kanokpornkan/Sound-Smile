@@ -1,31 +1,70 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { io } from "socket.io-client";
-import { FaBell, FaHome } from "react-icons/fa";
-import "./Navbar.css";
+import {
+  FaArrowRight,
+  FaBars,
+  FaBell,
+  FaChartLine,
+  FaChevronDown,
+  FaCloudUploadAlt,
+  FaCrown,
+  FaHome,
+  FaSignOutAlt,
+  FaTimes,
+  FaUserCircle,
+} from "react-icons/fa";
 import logo from "../assets/logo.png";
+import "./Navbar.css";
 
+const API_URL = "http://localhost:5000";
 const defaultAvatar =
   "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+
+// โควตาคงเหลือ = สิทธิ์ทั้งหมด - จำนวนที่ใช้ไป (ตาม Backend)
+// ไม่แสดง 0 ในระหว่างกำลังโหลด เพื่อไม่ให้ผู้ใช้เข้าใจว่าเครดิตหมด
+const getRemaining = (used, max, isAdmin = false) => {
+  if (isAdmin) return "∞"; // Backend อนุญาตให้ admin ไม่จำกัด
+  const usedNumber = Number(used);
+  const maxNumber = Number(max);
+  if (!Number.isFinite(usedNumber) || !Number.isFinite(maxNumber)) return null;
+  return Math.max(0, maxNumber - usedNumber);
+};
+
+const formatCredit = (value) =>
+  value == null ? "—" : value === "∞" ? "∞" : value.toLocaleString("th-TH");
 
 function Navbar() {
   const [user, setUser] = useState(null);
   const [limits, setLimits] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const socketRef = useRef(null);
+  const adminRef = useRef(null);
+  const notificationRef = useRef(null);
+  const accountRef = useRef(null);
+  const headerRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchLimits = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/user/${id}/limits`);
+      const res = await fetch(`${API_URL}/api/user/${id}/limits`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setLimits(data);
+      // ป้องกัน request ที่กลับมาหลัง Logout / เปลี่ยนบัญชี
+      try {
+        const current = JSON.parse(localStorage.getItem("user") || "null");
+        if (current?._id === id) setLimits(data);
+      } catch {
+        setLimits(null);
+      }
     } catch (err) {
       console.error("Error fetching limits:", err);
     }
@@ -33,10 +72,13 @@ function Navbar() {
 
   const loadNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/notifications");
+      const res = await fetch(`${API_URL}/api/notifications`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const notifWithUnread = data.map((n) => ({ ...n, unread: true }));
-
+      const notifWithUnread = (Array.isArray(data) ? data : []).map((n) => ({
+        ...n,
+        unread: true,
+      }));
       setNotifications(notifWithUnread);
       setUnreadCount(notifWithUnread.filter((n) => n.unread).length);
     } catch (err) {
@@ -47,20 +89,28 @@ function Navbar() {
   useEffect(() => {
     const updateUserFromLocalStorage = () => {
       const savedUser = localStorage.getItem("user");
+      let parsed = null;
 
       if (savedUser) {
-        const parsed = JSON.parse(savedUser);
+        try {
+          parsed = JSON.parse(savedUser);
+        } catch (err) {
+          console.error("Invalid saved user:", err);
+        }
+      }
+
+      if (parsed?._id) {
         setUser(parsed);
         fetchLimits(parsed._id);
         loadNotifications();
 
         if (!socketRef.current) {
-          socketRef.current = io("http://localhost:5000");
-
+          socketRef.current = io(API_URL);
           socketRef.current.on("notification", (notif) => {
-            const newNotif = { ...notif, unread: true };
-            setNotifications((prev) => [newNotif, ...prev]);
+            setNotifications((prev) => [{ ...notif, unread: true }, ...prev]);
             setUnreadCount((prev) => prev + 1);
+            // Backend ส่ง notification หลังมีการอัปโหลด/ดาวน์โหลดสำเร็จ
+            fetchLimits(parsed._id);
           });
         }
       } else {
@@ -68,31 +118,44 @@ function Navbar() {
         setLimits(null);
         setNotifications([]);
         setUnreadCount(0);
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
       }
     };
 
     updateUserFromLocalStorage();
 
+    // เก็บระบบ Google Login Callback เดิมไว้
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-
     if (token) {
       localStorage.setItem("token", token);
-
-      fetch("http://localhost:5000/auth/user", {
+      fetch(`${API_URL}/auth/user`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error("Cannot load Google login user");
+          return res.json();
+        })
         .then((data) => {
+          if (!data?._id) throw new Error("Invalid Google login user");
           localStorage.setItem("user", JSON.stringify(data));
           window.dispatchEvent(new Event("userLoggedIn"));
           updateUserFromLocalStorage();
           navigate("/dashboard");
-        });
+        })
+        .catch((err) => console.error("Google login failed:", err));
     }
 
     const handleLoginEvent = () => updateUserFromLocalStorage();
-    const handleProfileUpdated = (event) => setUser(event.detail);
+    const handleProfileUpdated = (event) => {
+      if (event.detail) {
+        setUser(event.detail);
+        if (event.detail._id) fetchLimits(event.detail._id);
+      }
+    };
 
     window.addEventListener("userLoggedIn", handleLoginEvent);
     window.addEventListener("userLoggedOut", handleLoginEvent);
@@ -102,7 +165,6 @@ function Navbar() {
       window.removeEventListener("userLoggedIn", handleLoginEvent);
       window.removeEventListener("userLoggedOut", handleLoginEvent);
       window.removeEventListener("profileUpdated", handleProfileUpdated);
-
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -110,9 +172,90 @@ function Navbar() {
     };
   }, [navigate]);
 
+  // อัปเดตยอดเครดิตเมื่อกลับมาที่แท็บ / เปลี่ยนหน้า / อัปโหลด / ดาวน์โหลด / Redeem Code
+  // ไม่ต้องรีโหลดทั้งเว็บไซต์หรือปรับ Backend
+  useEffect(() => {
+    const refreshCredits = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("user") || "null");
+        if (saved?._id) fetchLimits(saved._id);
+        else setLimits(null);
+      } catch {
+        setLimits(null);
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshCredits();
+    };
+    refreshCredits();
+    window.addEventListener("focus", refreshCredits);
+    window.addEventListener("storage", refreshCredits);
+    window.addEventListener("newNotification", refreshCredits);
+    window.addEventListener("quotaUpdated", refreshCredits);
+    window.addEventListener("uploadSuccess", refreshCredits);
+    window.addEventListener("downloadSuccess", refreshCredits);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", refreshCredits);
+      window.removeEventListener("storage", refreshCredits);
+      window.removeEventListener("newNotification", refreshCredits);
+      window.removeEventListener("quotaUpdated", refreshCredits);
+      window.removeEventListener("uploadSuccess", refreshCredits);
+      window.removeEventListener("downloadSuccess", refreshCredits);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [location.pathname]);
+
+  // เปลี่ยนหน้าแล้วปิดเมนูทั้งหมด
+  useEffect(() => {
+    setShowAdminMenu(false);
+    setShowNotifications(false);
+    setShowAccountMenu(false);
+    setShowMobileMenu(false);
+  }, [location.pathname]);
+
+  // คลิกข้างนอกหรือกด Esc จะปิด dropdown
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (adminRef.current && !adminRef.current.contains(event.target)) {
+        setShowAdminMenu(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+      if (accountRef.current && !accountRef.current.contains(event.target)) {
+        setShowAccountMenu(false);
+      }
+      if (headerRef.current && !headerRef.current.contains(event.target)) {
+        setShowMobileMenu(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setShowAdminMenu(false);
+        setShowNotifications(false);
+        setShowAccountMenu(false);
+        setShowMobileMenu(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    setShowAccountMenu(false);
+    setShowMobileMenu(false);
+    window.dispatchEvent(new Event("userLoggedOut"));
 
     Swal.fire({
       icon: "success",
@@ -123,194 +266,217 @@ function Navbar() {
       toast: true,
       position: "top-end",
     });
-
-    window.dispatchEvent(new Event("userLoggedOut"));
     navigate("/");
   };
 
+  const isAdminUser = user?.role === "admin";
+  const remainingUploads = limits
+    ? getRemaining(limits.uploadCount, limits.maxUpload, isAdminUser)
+    : null;
+  const remainingDownloads = limits
+    ? getRemaining(limits.downloadCount, limits.maxDownload, isAdminUser)
+    : null;
+
   const avatarUrl = user?.avatar || user?.picture || defaultAvatar;
+  const displayName = user?.username || user?.email || "My account";
+  const navLinkClass = ({ isActive }) =>
+    `ssn-link${isActive ? " ssn-link-active" : ""}`;
 
   return (
-    <header className="header">
-      {/* Logo */}
-      <div className="header-left">
-        <Link to="/" className="logo-link">
-          <img src={logo} alt="Shark Sound Logo" className="logo" />
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <nav className="header-right">
-        {/* Home */}
-        <Link to="/" className="nav-link home-link">
-          <FaHome />
-          <span>Home</span>
+    <header className="ssn-shell" ref={headerRef}>
+      <div className="ssn-pill">
+        {/* Brand: ยังคงใช้โลโก้ไฟล์เดิมของโปรเจกต์ */}
+        <Link to="/" className="ssn-brand" aria-label="Sound Share — Home">
+          <span className="ssn-brand-mark" aria-hidden="true">
+            <img src={logo} alt="" />
+          </span>
+          <span className="ssn-brand-text">
+            <strong>SOUND <span>SHARE</span></strong>
+            <small>CREATOR PLATFORM</small>
+          </span>
         </Link>
 
-        {/* Usage Info */}
-        {limits && user && (
-          <div className="usage-info">
-            Uploads: {limits.uploadCount}/{limits.maxUpload}
-            <span className="usage-divider">|</span>
-            Downloads: {limits.downloadCount}/{limits.maxDownload}
-          </div>
-        )}
+        {/* Desktop + Mobile navigation */}
+        <nav className={`ssn-nav${showMobileMenu ? " ssn-nav-open" : ""}`} aria-label="Main menu">
+          <NavLink to="/" end className={navLinkClass}>
+            <FaHome className="ssn-mobile-icon" /> Home
+          </NavLink>
 
-        {/* Member Status */}
-        {user && (
-          <div className="member-info">
-            <span className="member-label">Member</span>
-            <span className="member-plan">{user.plan || "Free"}</span>
+          <NavLink to="/premium" className={navLinkClass}>
+            <FaCrown className="ssn-mobile-icon" /> Premium
+          </NavLink>
 
-            {user.planExpire && (
-              <span className="member-expire">
-                Expire: {new Date(user.planExpire).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        )}
+          <NavLink to="/analytics" className={navLinkClass}>
+            <FaChartLine className="ssn-mobile-icon" /> Your Analytics
+          </NavLink>
 
-        {/* Upload */}
-        {user && (
-          <Link to="/upload" className="nav-link">
-            Upload
-          </Link>
-        )}
+          {user && (
+            <NavLink to="/upload" className="ssn-link ssn-mobile-only">
+              <FaCloudUploadAlt className="ssn-mobile-icon" /> Upload Sound
+            </NavLink>
+          )}
 
-        {/* Admin Dropdown */}
-        {user && user.role === "admin" && (
-          <div className="admin-dropdown">
-            <button
-              className="nav-link admin-link"
-              onClick={() => setShowAdminMenu(!showAdminMenu)}
-              aria-expanded={showAdminMenu}
-            >
-              Admin
-              <span className="dropdown-arrow">▾</span>
-            </button>
-
-            {showAdminMenu && (
-              <div className="dropdown-menu">
-                <Link
-                  to="/admin"
-                  className="dropdown-item"
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  Admin Panel
-                </Link>
-
-                <Link
-                  to="/admin/songs"
-                  className="dropdown-item"
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  Songs Management
-                </Link>
-
-                <Link
-                  to="/admin/analytics"
-                  className="dropdown-item"
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  Analytics
-                </Link>
-
-                <Link
-                  to="/admin/generate-codes"
-                  className="dropdown-item"
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  Generate Code
-                </Link>
-
-                <Link
-                  to="/admin/code-history"
-                  className="dropdown-item"
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  Redeem Code History
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Premium & Analytics */}
-        <Link to="/premium" className="nav-link">
-          Premium
-        </Link>
-
-        <Link to="/analytics" className="nav-link">
-          Your Analytics
-        </Link>
-
-        {/* Notifications */}
-        {user && (
-          <div className="notification-wrapper">
-            <button
-              className="icon-button"
-              onClick={() => setShowNotifications(!showNotifications)}
-              aria-label="Notifications"
-              aria-expanded={showNotifications}
-            >
-              <FaBell size={18} />
-
-              {unreadCount > 0 && (
-                <span className="notification-dot" />
+          {/* Admin functionality เดิมครบ */}
+          {user?.role === "admin" && (
+            <div className="ssn-dropdown-root" ref={adminRef}>
+              <button
+                type="button"
+                className={`ssn-link ssn-dropdown-toggle${showAdminMenu ? " ssn-link-active" : ""}`}
+                onClick={() => {
+                  setShowAdminMenu((v) => !v);
+                  setShowNotifications(false);
+                  setShowAccountMenu(false);
+                }}
+                aria-expanded={showAdminMenu}
+                aria-haspopup="menu"
+              >
+                Admin <FaChevronDown size={10} />
+              </button>
+              {showAdminMenu && (
+                <div className="ssn-dropdown ssn-admin-dropdown" role="menu">
+                  <Link to="/admin" role="menuitem">Admin Panel</Link>
+                  <Link to="/admin/songs" role="menuitem">Songs Management</Link>
+                  <Link to="/admin/analytics" role="menuitem">Analytics</Link>
+                  <Link to="/admin/generate-codes" role="menuitem">Generate Code</Link>
+                  <Link to="/admin/code-history" role="menuitem">Redeem Code History</Link>
+                </div>
               )}
-            </button>
+            </div>
+          )}
 
-            {showNotifications && (
-              <div className="notification-dropdown">
-                {notifications.length === 0 ? (
-                  <p className="notification-empty">No notifications</p>
-                ) : (
-                  notifications.map((n, idx) => (
-                    <div
-                      key={idx}
-                      className={`notification-item ${
-                        n.unread ? "unread" : ""
-                      }`}
-                    >
-                      {n.message}
+          {!user && (
+            <>
+              <NavLink to="/register" className="ssn-link ssn-mobile-only">
+                Register
+              </NavLink>
+              <NavLink to="/login" className="ssn-link ssn-mobile-only">
+                Login
+              </NavLink>
+            </>
+          )}
+          {user && (
+            <Link to="/profile" className="ssn-link ssn-mobile-only">
+              <FaUserCircle className="ssn-mobile-icon" /> My Profile
+            </Link>
+          )}
+          {user && (
+            <button type="button" className="ssn-link ssn-mobile-only ssn-mobile-logout" onClick={handleLogout}>
+              <FaSignOutAlt className="ssn-mobile-icon" /> Logout
+            </button>
+          )}
+
+          {user && limits && (
+            <div className="ssn-mobile-quota">
+              <span>เครดิตอัปโหลดคงเหลือ <b>{formatCredit(remainingUploads)}</b></span>
+              <span>เครดิตดาวน์โหลดคงเหลือ <b>{formatCredit(remainingDownloads)}</b></span>
+              <small>Member: {user.plan || "FREE"}</small>
+            </div>
+          )}
+        </nav>
+
+        {/* Right-side actions */}
+        <div className="ssn-actions">
+          {user && (
+            <div className="ssn-dropdown-root" ref={notificationRef}>
+              <button
+                className="ssn-icon-btn"
+                type="button"
+                onClick={() => {
+                  setShowNotifications((v) => !v);
+                  setShowAccountMenu(false);
+                  setShowAdminMenu(false);
+                }}
+                aria-label={`Notifications${unreadCount ? ` (${unreadCount})` : ""}`}
+                aria-expanded={showNotifications}
+                aria-haspopup="true"
+              >
+                <FaBell size={17} />
+                {unreadCount > 0 && <span className="ssn-notification-dot" />}
+              </button>
+              {showNotifications && (
+                <div className="ssn-dropdown ssn-notification-dropdown">
+                  <div className="ssn-popup-heading">Notifications</div>
+                  {notifications.length === 0 ? (
+                    <p className="ssn-notification-empty">No notifications</p>
+                  ) : (
+                    <div className="ssn-notification-list">
+                      {notifications.map((n, idx) => (
+                        <div key={n._id || idx} className={`ssn-notification-item${n.unread ? " is-unread" : ""}`}>
+                          {n.message}
+                        </div>
+                      ))}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Profile / Login */}
-        {user ? (
-          <div className="account-actions">
-            <Link to="/profile" className="profile-link">
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                className="avatar"
-              />
-            </Link>
+          {user ? (
+            <div className="ssn-dropdown-root ssn-account-root" ref={accountRef}>
+              <button
+                type="button"
+                className="ssn-account-btn"
+                onClick={() => {
+                  setShowAccountMenu((v) => !v);
+                  setShowNotifications(false);
+                  setShowAdminMenu(false);
+                }}
+                aria-label="Open account menu"
+                aria-haspopup="menu"
+                aria-expanded={showAccountMenu}
+              >
+                <img src={avatarUrl} alt="Profile" className="ssn-avatar" />
+                <FaChevronDown size={10} className="ssn-account-chevron" />
+              </button>
+              {showAccountMenu && (
+                <div className="ssn-dropdown ssn-account-dropdown" role="menu">
+                  <div className="ssn-account-summary">
+                    <strong>{displayName}</strong>
+                    <span className="ssn-plan-label">{user.plan || "FREE"} Member</span>
+                    {user.planExpire && (
+                      <small>Expire: {new Date(user.planExpire).toLocaleDateString()}</small>
+                    )}
+                  </div>
+                  {limits && (
+                    <div className="ssn-account-usage">
+                      <span>อัปโหลดคงเหลือ <b>{formatCredit(remainingUploads)}</b></span>
+                      <span>ดาวน์โหลดคงเหลือ <b>{formatCredit(remainingDownloads)}</b></span>
+                      <small>ใช้ไป: อัปโหลด {limits.uploadCount ?? 0}/{limits.maxUpload ?? "-"} · ดาวน์โหลด {limits.downloadCount ?? 0}/{limits.maxDownload ?? "-"}</small>
+                    </div>
+                  )}
+                  <Link to="/profile" role="menuitem"><FaUserCircle /> My Profile</Link>
+                  <button type="button" role="menuitem" onClick={handleLogout} className="ssn-signout">
+                    <FaSignOutAlt /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/register" className="ssn-register-link">Register</Link>
+          )}
 
-            <button
-              onClick={handleLogout}
-              className="gradient-login-button logout-button"
-            >
-              Logout
-            </button>
-          </div>
-        ) : (
-          <div className="account-actions">
-            <Link to="/register" className="nav-link">
-              Register
+          {user ? (
+            <Link to="/upload" className="ssn-primary-cta">
+              <FaCloudUploadAlt /> <span>Upload Sound</span> <FaArrowRight size={12} />
             </Link>
+          ) : (
+            <Link to="/login" className="ssn-primary-cta">
+              <span>Login</span> <FaArrowRight size={12} />
+            </Link>
+          )}
 
-            <Link to="/login" className="gradient-login-button">
-              Login
-            </Link>
-          </div>
-        )}
-      </nav>
+          <button
+            className="ssn-mobile-toggle"
+            type="button"
+            aria-label={showMobileMenu ? "Close menu" : "Open menu"}
+            aria-expanded={showMobileMenu}
+            onClick={() => setShowMobileMenu((v) => !v)}
+          >
+            {showMobileMenu ? <FaTimes /> : <FaBars />}
+          </button>
+        </div>
+      </div>
     </header>
   );
 }

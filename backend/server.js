@@ -5,6 +5,8 @@ import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -19,14 +21,21 @@ import { swaggerServe, swaggerSetup } from "./swagger.js";
 
 dotenv.config();
 const app = express();
-const __dirname = path.resolve();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ================= Middleware =================
 app.use("/api-docs", swaggerServe, swaggerSetup);
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+    ],
     credentials: true,
   })
 );
@@ -34,10 +43,14 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ================= MongoDB =================
-mongoose
-  .connect(process.env.MONGO_URL)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB error:", err));
+if (process.env.MONGO_URL) {
+  mongoose
+    .connect(process.env.MONGO_URL)
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch((err) => console.error("❌ MongoDB error:", err));
+} else {
+  console.error("❌ Missing MONGO_URL in backend/.env — upload API will return 503");
+}
 
 // ================= Models =================
 const notificationSchema = new mongoose.Schema({
@@ -90,6 +103,8 @@ const songSchema = new mongoose.Schema({
   tags: [String],
   soundType: String,
   filePath: String,
+  // ภาพปกเพลง (ไม่บังคับ; เพลงเดิมที่ไม่มีภาพยังใช้งานได้)
+  coverPath: { type: String, default: "" },
   likes: { type: Number, default: 0 },
   downloads: { type: Number, default: 0 },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -120,6 +135,7 @@ const isAdmin = async (req, res, next) => {
 // ================= สร้างโฟลเดอร์ =================
 const uploadsDir = path.join(__dirname, "uploads/music");
 const avatarsDir = path.join(__dirname, "uploads/avatars");
+const coversDir = path.join(__dirname, "uploads/covers");
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -131,12 +147,93 @@ if (!fs.existsSync(avatarsDir)) {
   console.log("✅ Created avatars directory");
 }
 
+// สร้างโฟลเดอร์เก็บภาพปก โดยไม่แตะโฟลเดอร์เพลงและ Avatar เดิม
+fs.mkdirSync(coversDir, { recursive: true });
+
 // ================= Multer Config for Music =================
 const musicStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const musicUpload = multer({ storage: musicStorage });
+
+// ================= Multer Config for Song + Cover =================
+// ตัวรับไฟล์นี้ใช้เฉพาะ POST /api/upload;
+// musicUpload และ avatarUpload เดิมยังคงใช้งานเหมือนเดิม
+const allowedAudioExtensions = new Set([
+  ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac", ".webm",
+]);
+const allowedImageMimeTypes = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
+
+const songCoverStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, file.fieldname === "cover" ? coversDir : uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    cb(null, `${randomUUID()}${extension}`);
+  },
+});
+
+const songCoverUpload = multer({
+  storage: songCoverStorage,
+  // Multer ใช้เพดานต่อไฟล์; จำกัดภาพปก 5 MB เพิ่มเติมด้านล่าง
+  limits: { fileSize: 50 * 1024 * 1024, files: 2, fields: 30 },
+  fileFilter: (req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const mime = (file.mimetype || "").toLowerCase();
+
+    if (file.fieldname === "cover") {
+      const correctMime = allowedImageMimeTypes[extension];
+      if (correctMime && mime === correctMime) return cb(null, true);
+      return cb(new Error("ไฟล์ภาพต้องเป็น JPG, PNG, WEBP หรือ GIF"));
+    }
+
+    if (file.fieldname === "music") {
+      const correctExt = allowedAudioExtensions.has(extension);
+      const correctMime =
+        !mime ||
+        mime.startsWith("audio/") ||
+        mime === "application/ogg" ||
+        mime === "application/octet-stream" ||
+        (extension === ".webm" && mime === "video/webm");
+      if (correctExt && correctMime) return cb(null, true);
+      return cb(new Error("ไฟล์เพลงต้องเป็น MP3, WAV, OGG, M4A, FLAC, AAC หรือ WEBM"));
+    }
+
+    cb(new Error("ชื่อฟิลด์ไฟล์ไม่ถูกต้อง (ใช้ music และ cover)"));
+  },
+}).fields([
+  { name: "music", maxCount: 1 },
+  { name: "cover", maxCount: 1 },
+]);
+
+const removeSongUploadFiles = async (req) => {
+  const files = Object.values(req.files || {}).flat();
+  await Promise.all(
+    files.map((file) => fs.promises.unlink(file.path).catch(() => {}))
+  );
+};
+
+const parseSongUploadFiles = (req, res, next) => {
+  songCoverUpload(req, res, async (err) => {
+    if (!err) return next();
+    await removeSongUploadFiles(req);
+    console.error("❌ Upload parser error:", err);
+    const fileTooLarge = err.code === "LIMIT_FILE_SIZE";
+    res.status(fileTooLarge ? 413 : 400).json({
+      message: fileTooLarge
+        ? "ไฟล์มีขนาดเกิน 50 MB (ภาพปกไม่เกิน 5 MB)"
+        : err.message || "ไม่สามารถอ่านไฟล์ที่อัปโหลดได้",
+    });
+  });
+};
 
 // ================= Multer Config for Avatar =================
 const avatarStorage = multer.diskStorage({
@@ -228,6 +325,11 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+const hasGoogleOAuth = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+);
+
+if (hasGoogleOAuth) {
 passport.use(
   new GoogleStrategy(
     {
@@ -259,6 +361,9 @@ passport.use(
     }
   )
 );
+} else {
+  console.warn("⚠️ Google OAuth disabled: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing");
+}
 
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) =>
@@ -267,11 +372,19 @@ passport.deserializeUser(async (id, done) =>
 
 app.get(
   "/auth/google",
+  (req, res, next) => {
+    if (!hasGoogleOAuth) return res.status(503).json({ message: "Google OAuth is not configured" });
+    next();
+  },
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 app.get(
   "/auth/google/callback",
+  (req, res, next) => {
+    if (!hasGoogleOAuth) return res.status(503).json({ message: "Google OAuth is not configured" });
+    next();
+  },
   passport.authenticate("google", { session: false, failureRedirect: "/" }),
   (req, res) => {
     const token = jwt.sign(
@@ -284,27 +397,71 @@ app.get(
 );
 
 // ================= Song Upload =================
+// ตรวจสิทธิ์ก่อนรับไฟล์เข้าดิสก์ ลดปัญหาไฟล์ค้างจากผู้ใช้ที่ไม่มีสิทธิ์
+const authorizeSongUpload = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: "MongoDB ยังไม่เชื่อมต่อ กรุณาตรวจสอบ MONGO_URL ใน backend/.env",
+      });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.role === "user" && user.uploadCount >= user.maxUpload)
+      return res.status(403).json({ message: "Upload limit reached" });
+
+    req.uploadUser = user;
+    next();
+  } catch (err) {
+    console.error("❌ Upload authorization error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 app.post(
   "/api/upload",
   verifyToken,
-  musicUpload.single("music"),
+  authorizeSongUpload,
+  parseSongUploadFiles,
   async (req, res) => {
+    let song = null;
     try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      const musicFile = req.files?.music?.[0];
+      const coverFile = req.files?.cover?.[0];
+      if (!musicFile) {
+        await removeSongUploadFiles(req);
+        return res.status(400).json({ message: "No music file uploaded (music)" });
+      }
+      if (coverFile && coverFile.size > 5 * 1024 * 1024) {
+        await removeSongUploadFiles(req);
+        return res.status(413).json({ message: "ภาพปกต้องไม่เกิน 5 MB" });
+      }
 
-      if (user.role === "user" && user.uploadCount >= user.maxUpload)
-        return res.status(403).json({ message: "Upload limit reached" });
+      const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
+      const artist = typeof req.body.artist === "string" ? req.body.artist.trim() : "";
+      if (!title || !artist) {
+        await removeSongUploadFiles(req);
+        return res.status(400).json({ message: "กรุณากรอกชื่อเพลงและชื่อศิลปิน" });
+      }
 
-      if (!req.file)
-        return res.status(400).json({ message: "No file uploaded" });
+      let tags = [];
+      try {
+        tags = typeof req.body.tags === "string"
+          ? JSON.parse(req.body.tags)
+          : Array.isArray(req.body.tags) ? req.body.tags : [];
+      } catch {
+        await removeSongUploadFiles(req);
+        return res.status(400).json({ message: "แท็กไม่ใช่ JSON ที่ถูกต้อง" });
+      }
+      if (!Array.isArray(tags) || tags.some((tag) => typeof tag !== "string")) {
+        await removeSongUploadFiles(req);
+        return res.status(400).json({ message: "tags ต้องเป็นรายการข้อความ" });
+      }
 
-      const tags =
-        typeof req.body.tags === "string" ? JSON.parse(req.body.tags) : [];
-      const song = await Song.create({
-        title: req.body.title,
-        artist: req.body.artist,
-        description: req.body.description,
+      song = await Song.create({
+        title,
+        artist,
+        description: req.body.description || "",
         bpm: Number(req.body.bpm) || 0,
         key: req.body.key || "",
         mode: req.body.mode || "",
@@ -312,23 +469,28 @@ app.post(
         subtype: req.body.subtype || "",
         tags,
         soundType: req.body.soundType || "",
-        filePath: `uploads/music/${req.file.filename}`,
+        filePath: `uploads/music/${musicFile.filename}`,
+        coverPath: coverFile ? `uploads/covers/${coverFile.filename}` : "",
         user: req.userId,
       });
 
-      user.uploadCount += 1;
-      await user.save();
+      req.uploadUser.uploadCount += 1;
+      await req.uploadUser.save();
 
+      // คงการแจ้งเตือน Socket.IO ของเดิมไว้
       io.emit("notification", {
         type: "upload",
-        message: `${user.username} uploaded ${song.title}`,
-        user: user._id,
+        message: `${req.uploadUser.username} uploaded ${song.title}`,
+        user: req.uploadUser._id,
         song: song._id,
         createdAt: new Date(),
       });
 
       res.json({ message: "Upload success", song });
     } catch (err) {
+      console.error("❌ Song upload error:", err);
+      if (song) await Song.findByIdAndDelete(song._id).catch(() => {});
+      await removeSongUploadFiles(req);
       res.status(500).json({ message: err.message });
     }
   }
@@ -803,7 +965,14 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+    ],
     credentials: true,
   },
 });
@@ -924,6 +1093,11 @@ app.delete("/api/admin/songs/:id", verifyToken, isAdmin, async (req, res) => {
 
     if (song.filePath && fs.existsSync(path.join(__dirname, song.filePath))) {
       fs.unlinkSync(path.join(__dirname, song.filePath));
+    }
+
+    // เมื่อ Admin ลบเพลง ให้ลบไฟล์ภาพปกของเพลงนั้นด้วย
+    if (song.coverPath && fs.existsSync(path.join(__dirname, song.coverPath))) {
+      fs.unlinkSync(path.join(__dirname, song.coverPath));
     }
 
     await song.deleteOne();
@@ -1098,6 +1272,16 @@ app.get("/api/admin/codes", verifyToken, isAdmin, async (req, res) => {
     console.error("❌ Error fetching redeem codes:", err);
     res.status(500).json({ message: err.message });
   }
+});
+
+// ================= Health Check =================
+// เปิด http://localhost:5000/api/health เพื่อดูสถานะ Backend / MongoDB
+app.get("/api/health", (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    server: "running",
+    mongodb: connected ? "connected" : "disconnected",
+  });
 });
 
 // ================= Start Server =================
