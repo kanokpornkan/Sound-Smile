@@ -1,10 +1,19 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
-import "./AdminGenCode.css";
+import AdminHeader from "./AdminHeader";
+import "./AdminTheme.css";
 
 function AdminGenCode() {
   const [plan, setPlan] = useState("SOCOZY");
   const [code, setCode] = useState("");
+
+  const copyCode = (text) =>
+    navigator.clipboard
+      .writeText(text)
+      .then(() =>
+        Swal.fire({ title: "Copied!", text: "The code has been copied to clipboard.", icon: "success", timer: 1500, showConfirmButton: false })
+      )
+      .catch(() => Swal.fire("Error", "Failed to copy code", "error"));
 
   const generate = async () => {
     try {
@@ -14,90 +23,69 @@ function AdminGenCode() {
         body: JSON.stringify({ plan }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to generate code");
-      }
+      if (!res.ok) throw new Error("Failed to generate code");
 
       const data = await res.json();
       setCode(data.code);
 
-      // แสดงโค้ดและข้อความสำเร็จใน popup พร้อมปุ่ม copy
       Swal.fire({
-        title: 'Success!',
+        title: "Success!",
         html: `
           <p>Plan "<strong>${plan}</strong>" has been successfully generated!</p>
           <p>Your Code: <strong id="genCode">${data.code}</strong></p>
         `,
-        icon: 'success',
+        icon: "success",
         showCancelButton: true,
-        confirmButtonText: 'Copy Code',
-        cancelButtonText: 'Close'
+        confirmButtonColor: "#19427D",
+        cancelButtonColor: "#8290A2",
+        confirmButtonText: "Copy Code",
+        cancelButtonText: "Close",
       }).then((result) => {
-        if (result.isConfirmed) {
-          const codeText = data.code;
-          navigator.clipboard.writeText(codeText)
-            .then(() => {
-              Swal.fire({
-                title: 'Copied!',
-                text: 'The code has been copied to clipboard.',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-              });
-            })
-            .catch(() => {
-              Swal.fire('Error', 'Failed to copy code', 'error');
-            });
-        }
+        if (result.isConfirmed) copyCode(data.code);
       });
-
     } catch (error) {
       console.error(error);
       Swal.fire({
-        title: 'Error',
-        text: 'Cannot generate code. Please try again.',
-        icon: 'error',
-        confirmButtonText: 'OK'
+        title: "Error",
+        text: "Cannot generate code. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#19427D",
+        confirmButtonText: "OK",
       });
     }
   };
 
   return (
-    <div className="gencode-page-wrapper">
-      <div className="gencode-page">
-        <h1>Generate Premium Code</h1>
+    <div className="ss-admin">
+      <AdminHeader
+        label="ADMIN CONTROL"
+        title="Generate Premium Code"
+        desc="สร้างโค้ดสำหรับแพ็กเกจพรีเมียม"
+      />
 
-        <select onChange={(e) => setPlan(e.target.value)}>
-          <option value="SOCOZY">So Cozy</option>
-          <option value="SUPERCOZY">Super Cozy</option>
-          <option value="COZIEST">Coziest</option>
-        </select>
+      <section className="ssa-section">
+        <div className="ssa-card ssa-gen">
+          <span className="ssa-overline">NEW CODE</span>
+          <h2>เลือกแพ็กเกจ</h2>
+          <p>เลือกแพ็กเกจแล้วกด Generate เพื่อสร้างโค้ดใหม่</p>
 
-        <button onClick={generate}>Generate</button>
+          <select className="ssa-input" value={plan} onChange={(e) => setPlan(e.target.value)}>
+            <option value="SOCOZY">So Cozy</option>
+            <option value="SUPERCOZY">Super Cozy</option>
+            <option value="COZIEST">Coziest</option>
+          </select>
 
-        {code && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-            <h2>Your Code: {code}</h2>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(code)
-                  .then(() => alert('Code copied!'))
-                  .catch(() => alert('Failed to copy'));
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-                background: '#00c6ff',
-                color: '#fff'
-              }}
-            >
-              Copy
-            </button>
-          </div>
-        )}
-      </div>
+          <button className="ssa-btn" onClick={generate}>Generate</button>
+
+          {code && (
+            <div className="ssa-result">
+              <small>YOUR CODE</small>
+              <span className="ssa-code">{code}</span>
+              <button className="ssa-btn outline" onClick={() => copyCode(code)}>Copy</button>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
