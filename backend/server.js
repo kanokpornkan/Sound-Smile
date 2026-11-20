@@ -638,6 +638,157 @@ app.get("/api/user/:id/favorites", verifyToken, async (req, res) => {
 });
 
 // ================= Download System =================
+// ================= Recommendation API =================
+
+app.get("/api/recommendations", async (req, res) => {
+  try {
+    let favoriteIds = [];
+    let favoriteSongs = [];
+
+    // 1. ตรวจสอบ Token ของผู้ใช้
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+    // 2. ดึงเพลง Favorite ของผู้ใช้
+    if (token) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "secret"
+        );
+
+        const user = await User.findById(decoded.id);
+
+        if (user) {
+          favoriteIds = (user.favorites || []).map(
+            (id) => id.toString()
+          );
+
+          favoriteSongs = await Song.find({
+            _id: { $in: favoriteIds },
+          }).select("type subtype tags");
+        }
+      } catch (tokenError) {
+        console.log("Recommendation: Guest user or invalid token");
+      }
+    }
+
+    // 3. ดึงเพลงทั้งหมด ยกเว้นเพลงที่ Favorite แล้ว
+    const allSongs = await Song.find({
+      _id: { $nin: favoriteIds },
+    }).lean();
+
+    const normalize = (value) =>
+      String(value || "").trim().toLowerCase();
+
+    // 4. ถ้ายังไม่มีเพลง Favorite ให้แนะนำเพลงยอดนิยม
+    if (favoriteSongs.length === 0) {
+      const popularSongs = allSongs
+        .sort((a, b) => {
+          const scoreA =
+            (Number(a.likes) || 0) * 2 +
+            (Number(a.downloads) || 0);
+
+          const scoreB =
+            (Number(b.likes) || 0) * 2 +
+            (Number(b.downloads) || 0);
+
+          return scoreB - scoreA;
+        })
+        .slice(0, 8);
+
+      return res.json(popularSongs);
+    }
+
+    // 5. วิเคราะห์ประเภทเพลงที่ผู้ใช้ชอบ
+    const preferences = {
+      types: new Map(),
+      subtypes: new Map(),
+      tags: new Map(),
+    };
+
+    favoriteSongs.forEach((song) => {
+      const type = normalize(song.type);
+      const subtype = normalize(song.subtype);
+
+      if (type) {
+        preferences.types.set(
+          type,
+          (preferences.types.get(type) || 0) + 1
+        );
+      }
+
+      if (subtype) {
+        preferences.subtypes.set(
+          subtype,
+          (preferences.subtypes.get(subtype) || 0) + 1
+        );
+      }
+
+      (song.tags || []).forEach((tag) => {
+        const normalizedTag = normalize(tag);
+
+        if (normalizedTag) {
+          preferences.tags.set(
+            normalizedTag,
+            (preferences.tags.get(normalizedTag) || 0) + 1
+          );
+        }
+      });
+    });
+
+    // 6. คำนวณคะแนนเพลงที่เหมาะกับผู้ใช้
+    const recommendedSongs = allSongs
+      .map((song) => {
+        let score = 0;
+
+        const type = normalize(song.type);
+        const subtype = normalize(song.subtype);
+
+        // ประเภทเพลงตรงกัน +5 คะแนน
+        score +=
+          (preferences.types.get(type) || 0) * 5;
+
+        // ประเภทย่อยตรงกัน +3 คะแนน
+        score +=
+          (preferences.subtypes.get(subtype) || 0) * 3;
+
+        // Tags ตรงกัน +1 คะแนนต่อ Tag
+        (song.tags || []).forEach((tag) => {
+          score +=
+            preferences.tags.get(normalize(tag)) || 0;
+        });
+
+        // คะแนนเสริมจากยอด Like และ Download
+        score += (Number(song.likes) || 0) * 0.1;
+        score += (Number(song.downloads) || 0) * 0.05;
+
+        return {
+          ...song,
+          recommendationScore: score,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.recommendationScore - a.recommendationScore
+      )
+      .slice(0, 8)
+      .map(({ recommendationScore, ...song }) => song);
+
+    // 7. ส่งเพลงแนะนำกลับไปยัง Frontend
+    res.json(recommendedSongs);
+
+  } catch (error) {
+    console.error("Recommendation Error:", error);
+
+    res.status(500).json({
+      message: "ไม่สามารถแนะนำเพลงได้",
+      error: error.message,
+    });
+  }
+});
 app.post("/api/songs/:id/download", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);

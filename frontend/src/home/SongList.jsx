@@ -11,6 +11,7 @@ function SongList({ searchTerm }) {
   const [songs, setSongs] = useState([]);
   const [topLikes, setTopLikes] = useState([]);
   const [topDownloads, setTopDownloads] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [currentPlaying, setCurrentPlaying] = useState(null);
   const [filterTag, setFilterTag] = useState(null);
@@ -51,6 +52,22 @@ function SongList({ searchTerm }) {
       setSongs(Array.isArray(allRes.data) ? allRes.data : []);
       setTopLikes(Array.isArray(likesRes.data) ? likesRes.data : []);
       setTopDownloads(Array.isArray(dlRes.data) ? dlRes.data : []);
+
+      // โหลดคำแนะนำแยกต่างหาก เพื่อไม่ให้กระทบการโหลดเพลงส่วนอื่น
+      try {
+        const recommendRes = await axios.get(
+          `${BASE_URL}/api/recommendations`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+        setRecommendations(
+          Array.isArray(recommendRes.data) ? recommendRes.data : []
+        );
+      } catch (recommendError) {
+        console.error("Error loading recommendations:", recommendError);
+        setRecommendations([]);
+      }
     } catch (err) {
       console.error("Error loading songs:", err);
     }
@@ -602,7 +619,9 @@ function SongList({ searchTerm }) {
             <h2>{title}</h2>
 
             <p>
-              {isLiked
+              {title.includes("Recommended")
+                ? "เพลงที่เลือกจากประเภทเพลงที่คุณชอบและความนิยม"
+                : isLiked
                 ? "เพลงที่ได้รับความนิยมจากผู้ฟัง"
                 : isDownloaded
                 ? "เพลงที่ถูกดาวน์โหลดมากที่สุด"
@@ -714,6 +733,7 @@ function SongList({ searchTerm }) {
       {/* FEATURED */}
       {!searchTerm && !filterTag && (
         <>
+          {renderSection("Recommended For You", recommendations)}
           {renderSection("Most Liked", topLikes)}
           {renderSection("Most Downloaded", topDownloads)}
         </>
