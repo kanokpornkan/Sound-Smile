@@ -1,69 +1,191 @@
-/* ================= Container ================= */
-.user-analytics-container {
-  padding: 2rem;
-  max-width: 1200px;
+.analytics-page {
+  min-height: 100vh;
+  background-color: #e6e7e9;
+  color: #dddddd;
+  padding: 36px 24px 64px;
+}
+
+.analytics-container {
+  max-width: 1180px;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
-  color: #000; /* ตัวหนังสือสีดำ */
-}
-
-/* ================= Header ================= */
-.user-analytics-header {
-  font-size: 32px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-/* ================= Sections ================= */
-.user-analytics-section {
-  margin-bottom: 3rem;
-  background: #f9f9f9;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
-  align-items: center; /* กราฟอยู่ตรงกลาง */
+  gap: 24px;
+}
+
+.analytics-header {
+  background: linear-gradient(135deg, #041228 0%, #0b244b 100%);
+  border: 1px solid #19427d;
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 14px 32px rgba(4, 18, 40, 0.14);
+}
+
+.analytics-title {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.analytics-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  color: #b8c7de;
+}
+
+.analytics-alert {
+  background-color: #041228;
+  border: 1px solid #19427d;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 14px;
   text-align: center;
+  font-size: 0.9rem;
 }
 
-/* ================= Section Titles ================= */
-.user-analytics-section h3 {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  color: #000;
+.analytics-card {
+  background: linear-gradient(160deg, #041228 0%, #081c3a 100%);
+  border: 1px solid #19427d;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 14px 32px rgba(4, 18, 40, 0.14);
 }
 
-/* ================= Chart Text ================= */
-.user-analytics-section p {
-  margin-top: 1rem;
-  font-size: 16px;
-  color: #000;
+.section-heading {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
-/* ================= Tooltip ================= */
-.recharts-tooltip-wrapper {
-  font-size: 14px;
-  color: #000;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 6px 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+.chart-wrapper {
+  position: relative;
+  height: 280px;
+  width: 100%;
+  background-color: rgba(4, 18, 40, 0.75);
+  border: 1px solid rgba(25, 66, 125, 0.65);
+  border-radius: 14px;
+  padding: 16px;
 }
 
-/* ================= Legend ================= */
-.recharts-legend-wrapper {
-  font-size: 14px;
-  color: #000;
+.limit-summary {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+  color: #dddddd;
 }
 
-/* ================= Responsive ================= */
-@media (max-width: 768px) {
-  .user-analytics-section svg {
-    width: 100% !important;
-    height: auto !important;
+.limit-divider {
+  opacity: 0.45;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.song-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ปรับให้กรอบรายการโดดเด่นขึ้น แยกชั้นจากพื้นหลังการ์ดชัดเจน */
+.song-rank-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background-color: #19427d !important;
+  border: 1px solid #4c7ec7 !important;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.song-rank-item:hover {
+  transform: translateY(-2px);
+  background-color: #23559e !important;
+  border-color: #8cb8f5 !important;
+}
+
+.rank-badge {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background-color: #041228 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rank-fav {
+  background-color: #0b244b !important;
+}
+
+.song-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent !important;
+}
+
+.song-title {
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.96rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-meta {
+  color: #e2e8f0 !important;
+  font-size: 0.82rem;
+}
+
+.song-stat {
+  color: #ffffff !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fav-stat {
+  color: #ffffff !important;
+  background-color: rgba(4, 18, 40, 0.45);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.empty-text {
+  text-align: center;
+  color: #b8c7de;
+  margin: 20px 0;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 820px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
   }
 }
