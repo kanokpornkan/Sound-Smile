@@ -22,6 +22,7 @@ import AdminAnalytics from "./admin/AdminAnalytics";
 import UserAnalytics from "./analytic/UserAnalytics";
 import AdminGenCode from "./admin/AdminGenCode";
 import AdminCodeHistory from "./admin/AdminCodeHistory";
+import Dashbord from "./dashbord/dashbord";
 
 function AppWrapper() {
   const location = useLocation();
@@ -54,6 +55,7 @@ function AppWrapper() {
   const showSearch =
     location.pathname === "/" ||
     location.pathname === "/dashboard" ||
+    location.pathname === "/dashbord" ||
     location.pathname === "/admin/songs";
 
   return (
@@ -95,7 +97,8 @@ function AppWrapper() {
         <Route path="/register" element={<Rigister />} />
 
         {/* User */}
-        <Route path="/dashboard" element={<SongList searchTerm={searchTerm} />} />
+        <Route path="/dashboard" element={<Dashbord />} />
+        <Route path="/dashbord" element={<Dashbord />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/edit-profile" element={<EditProfile />} />
