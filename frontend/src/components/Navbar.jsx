@@ -144,7 +144,7 @@ function Navbar() {
           localStorage.setItem("user", JSON.stringify(data));
           window.dispatchEvent(new Event("userLoggedIn"));
           updateUserFromLocalStorage();
-          navigate("/dashboard");
+          navigate("/");
         })
         .catch((err) => console.error("Google login failed:", err));
     }

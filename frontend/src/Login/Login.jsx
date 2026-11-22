@@ -44,7 +44,8 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(res.data));
       window.dispatchEvent(new Event("userLoggedIn"));
       Swal.fire({ icon: "success", title: "เข้าสู่ระบบสำเร็จ", timer: 1400, showConfirmButton: false });
-      navigate("/dashboard");
+      navigate("/");
+      window.location.href = "/"
     }).catch((err) => {
       if (!active) return;
       if (localStorage.getItem("token") === token) localStorage.removeItem("token");
@@ -82,7 +83,8 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(userResponse.data));
       window.dispatchEvent(new Event("userLoggedIn"));
       Swal.fire({ icon: "success", title: "เข้าสู่ระบบสำเร็จ", timer: 1400, showConfirmButton: false });
-      navigate("/dashboard");
+      navigate("/");
+      window.location.href = "/"
     } catch (error) {
       Swal.fire({
         icon: "error",
