@@ -1059,3 +1059,36 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* =========================================
+   SONG COVER IMAGE
+========================================= */
+
+.ss-song-cover-image {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.4s ease;
+}
+
+.ss-song-card:hover .ss-song-cover-image {
+  transform: scale(1.05);
+}
+
+/* ซ่อน Artwork แผ่นเสียงเดิมเมื่อมีภาพปก */
+.ss-song-cover.has-cover .ss-art-orbit,
+.ss-song-cover.has-cover .ss-art-content {
+  display: none;
+}
+
+/* ให้ปุ่มควบคุมอยู่เหนือภาพปก */
+.ss-song-cover .ss-favorite-btn,
+.ss-song-cover .ss-cover-play,
+.ss-song-cover .ss-art-status {
+  z-index: 3;
+}

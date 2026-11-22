@@ -360,6 +360,18 @@ function SongList({ searchTerm }) {
     );
   }
 
+  // CREATE SONG COVER URL
+  const getCoverUrl = (coverPath) => {
+    if (!coverPath) return "";
+
+    // รองรับทั้ง URL เต็มและ path ที่ส่งมาจาก Backend
+    if (/^https?:\/\//i.test(coverPath)) {
+      return coverPath;
+    }
+
+    return `${BASE_URL}/${String(coverPath).replace(/^\/+/, "")}`;
+  };
+
   // SONG CARD
   const renderSongBox = (song, index = 0) => {
     const isPlaying = currentPlaying === song._id;
@@ -376,7 +388,23 @@ function SongList({ searchTerm }) {
         onClick={() => navigate(`/song/${song._id}`)}
       >
         {/* ARTWORK */}
-        <div className="ss-song-cover">
+        <div className={`ss-song-cover ${song.coverPath ? "has-cover" : ""}`}>
+          {/* SONG COVER IMAGE */}
+          {song.coverPath && (
+            <img
+              src={getCoverUrl(song.coverPath)}
+              alt={`${song.title || "Song"} Cover`}
+              className="ss-song-cover-image"
+              loading="lazy"
+              onError={(e) => {
+                // ถ้าภาพโหลดไม่สำเร็จ ให้กลับไปแสดง Artwork เดิม
+                e.currentTarget.style.display = "none";
+                e.currentTarget.parentElement?.classList.remove("has-cover");
+              }}
+            />
+          )}
+
+          {/* DEFAULT ARTWORK: ใช้เมื่อเพลงไม่มีภาพปก */}
           <div className="ss-art-orbit ss-art-orbit-one" />
           <div className="ss-art-orbit ss-art-orbit-two" />
 
@@ -724,9 +752,7 @@ function SongList({ searchTerm }) {
       {/* SEARCH */}
       {searchTerm && (
         <div className="ss-filter-notice">
-          <span>
-            SEARCH / <strong>{searchTerm}</strong>
-          </span>
+          <span>SEARCH / <strong>{searchTerm}</strong></span>
         </div>
       )}
 
