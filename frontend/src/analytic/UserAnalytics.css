@@ -1,191 +1,265 @@
-.analytics-page {
+.ss-dash-page {
   min-height: 100vh;
-  background-color: #e6e7e9;
-  color: #dddddd;
-  padding: 36px 24px 64px;
+  background-color: #e5e7eb;
+  background-image: radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 55%);
+  color: #f8fafc;
+  padding: 28px 20px 52px;
+  font-family: inherit;
 }
 
-.analytics-container {
+.ss-dash-shell {
   max-width: 1180px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
-.analytics-header {
-  background: linear-gradient(135deg, #041228 0%, #0b244b 100%);
-  border: 1px solid #19427d;
-  border-radius: 20px;
-  padding: 24px 28px;
-  box-shadow: 0 14px 32px rgba(4, 18, 40, 0.14);
-}
-
-.analytics-title {
-  margin: 0;
-  font-size: 1.85rem;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-}
-
-.analytics-subtitle {
-  margin: 6px 0 0;
-  font-size: 0.92rem;
-  color: #b8c7de;
-}
-
-.analytics-alert {
-  background-color: #041228;
-  border: 1px solid #19427d;
-  color: #ffffff;
-  padding: 12px 16px;
-  border-radius: 14px;
-  text-align: center;
-  font-size: 0.9rem;
-}
-
-.analytics-card {
-  background: linear-gradient(160deg, #041228 0%, #081c3a 100%);
-  border: 1px solid #19427d;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 14px 32px rgba(4, 18, 40, 0.14);
-}
-
-.section-heading {
-  margin: 0 0 18px;
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.chart-wrapper {
-  position: relative;
-  height: 280px;
-  width: 100%;
-  background-color: rgba(4, 18, 40, 0.75);
-  border: 1px solid rgba(25, 66, 125, 0.65);
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.limit-summary {
-  margin-top: 16px;
+.ss-dash-topbar {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  font-size: 0.92rem;
-  color: #dddddd;
+  gap: 16px;
+  background: linear-gradient(135deg, #0d2852 0%, #06142b 65%, #030b18 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px -15px rgba(2, 8, 23, 0.35);
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 22px;
 }
 
-.limit-divider {
-  opacity: 0.45;
+.ss-dash-brand {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(147, 197, 253, 0.22);
+  padding: 4px 11px;
+  border-radius: 999px;
+  margin-bottom: 10px;
 }
 
-.analytics-grid {
+.ss-dash-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.ss-dash-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #cbd5e1;
+}
+
+.ss-quota-box {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background-color: rgba(3, 11, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 12px 20px;
+}
+
+.ss-quota-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ss-quota-item span {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ss-quota-item strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ss-quota-divider {
+  width: 1px;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.ss-dash-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
+  align-items: start;
 }
 
-.song-rank-list {
+@media (max-width: 900px) {
+  .ss-dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ss-card {
+  background: linear-gradient(155deg, #0b2246 0%, #051226 65%, #020914 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 36px -14px rgba(2, 8, 23, 0.32);
+  border-radius: 20px;
+  padding: 22px;
+}
+
+.ss-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ss-card-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ss-card-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.ss-badge {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ss-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ss-filter-btn {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ss-filter-btn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.ss-filter-btn.is-active {
+  background-color: #ffffff;
+  color: #051226;
+  border-color: #ffffff;
+}
+
+.ss-chart-wrap {
+  position: relative;
+  height: 300px;
+  background-color: rgba(2, 8, 20, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.ss-empty-text {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  color: #cbd5e1;
+  background-color: rgba(2, 8, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.ss-rank-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* ปรับให้กรอบรายการโดดเด่นขึ้น แยกชั้นจากพื้นหลังการ์ดชัดเจน */
-.song-rank-item {
+.ss-rank-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  background-color: #19427d !important;
-  border: 1px solid #4c7ec7 !important;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
-  padding: 12px 16px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  padding: 11px 14px;
 }
 
-.song-rank-item:hover {
-  transform: translateY(-2px);
-  background-color: #23559e !important;
-  border-color: #8cb8f5 !important;
-}
-
-.rank-badge {
+.ss-rank-num {
   min-width: 34px;
   height: 34px;
   border-radius: 10px;
-  background-color: #041228 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-weight: 700;
-  font-size: 0.85rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  background-color: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
 }
 
-.rank-fav {
-  background-color: #0b244b !important;
+.ss-rank-num.rank-1,
+.ss-rank-num.rank-2,
+.ss-rank-num.rank-3 {
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  color: #ffffff;
 }
 
-.song-info {
+.ss-rank-info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: transparent !important;
 }
 
-.song-title {
-  color: #ffffff !important;
+.ss-rank-song {
+  font-size: 14px;
   font-weight: 700;
-  font-size: 0.96rem;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.song-meta {
-  color: #e2e8f0 !important;
-  font-size: 0.82rem;
-}
-
-.song-stat {
-  color: #ffffff !important;
-  font-size: 0.85rem;
-  font-weight: 600;
+.ss-rank-artist {
+  font-size: 12px;
+  color: #94a3b8;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.fav-stat {
-  color: #ffffff !important;
-  background-color: rgba(4, 18, 40, 0.45);
-  padding: 4px 10px;
+.ss-like-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
   border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
   font-weight: 700;
-}
-
-.empty-text {
-  text-align: center;
-  color: #b8c7de;
-  margin: 20px 0;
-  font-size: 0.92rem;
-}
-
-@media (max-width: 820px) {
-  .analytics-grid {
-    grid-template-columns: 1fr;
-  }
+  white-space: nowrap;
 }
