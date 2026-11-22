@@ -10,8 +10,10 @@ import ProfileUpload from "./ProfileUpload/Profileuploads";
 import ProfileDownload from "./ProfileDownload/Profiledownload";
 import ProfileFavorites from "./ProfileFovorites/Profilefovorites";
 import EditProfile from "./editprofile/editprofile";
-import defaultAvatar from "../assets/logo.png";
+import defaultAvatar from "../assets/soundsmile-mark.png";
 import "./Profile.css";
+import CountUp from "../motion/CountUp";
+import useModalPresence from "../motion/useModalPresence";
 
 const API = "http://localhost:5000";
 
@@ -33,6 +35,7 @@ function Profile() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("uploads");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editModalMounted, editModalClosing] = useModalPresence(showEditModal);
   const [user, setUser] = useState(readStoredUser);
   const [counts, setCounts] = useState({ uploads: 0, downloads: 0, favorites: 0 });
 
@@ -146,7 +149,7 @@ function Profile() {
       <div className="ssp-shell">
         <section className="ssp-profile-hero" aria-label="ข้อมูลโปรไฟล์">
           <div className="ssp-hero-topline">
-            <span><i /> SOUND SHARE / MY PROFILE</span>
+            <span><i /> SoundSmile / MY PROFILE</span>
             <span>CREATOR SPACE — 01 / 03</span>
           </div>
 
@@ -154,7 +157,7 @@ function Profile() {
             <div className="ssp-hero-copy">
               <span className="ssp-hero-eyebrow">WELCOME TO YOUR SPACE</span>
               <h1>Every sound <span>starts here.</span></h1>
-              <p>โปรไฟล์ของคุณคือพื้นที่เก็บผลงาน เสียงที่ชื่นชอบ และเรื่องราวของคุณบน SOUND SHARE</p>
+              <p>โปรไฟล์ของคุณคือพื้นที่เก็บผลงาน เสียงที่ชื่นชอบ และเรื่องราวของคุณบน SoundSmile</p>
               <div className="ssp-hero-discover"><FiHeadphones /> LISTEN · CREATE · SHARE</div>
             </div>
 
@@ -194,7 +197,7 @@ function Profile() {
               </div>
             </div>
           </div>
-          <div className="ssp-hero-bottomline"><span>YOUR PERSONAL MUSIC SPACE</span><span>SOUND SHARE / COMMUNITY</span></div>
+          <div className="ssp-hero-bottomline"><span>YOUR PERSONAL MUSIC SPACE</span><span>SoundSmile / COMMUNITY</span></div>
         </section>
 
         <section className="ssp-overview" aria-label="สรุปผลงาน">
@@ -206,9 +209,9 @@ function Profile() {
             </div>
           </div>
           <div className="ssp-stat-grid">
-            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiMusic /></span><div><span>เพลงที่อัปโหลด</span><strong>{counts.uploads}</strong><small>UPLOADS</small></div></div>
-            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiDownload /></span><div><span>ประวัติดาวน์โหลด</span><strong>{counts.downloads}</strong><small>DOWNLOADS</small></div></div>
-            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiHeart /></span><div><span>เพลงที่ชื่นชอบ</span><strong>{counts.favorites}</strong><small>FAVORITES</small></div></div>
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiMusic /></span><div><span>เพลงที่อัปโหลด</span><strong><CountUp value={counts.uploads} /></strong><small>UPLOADS</small></div></div>
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiDownload /></span><div><span>ประวัติดาวน์โหลด</span><strong><CountUp value={counts.downloads} /></strong><small>DOWNLOADS</small></div></div>
+            <div className="ssp-stat-card"><span className="ssp-stat-icon"><FiHeart /></span><div><span>เพลงที่ชื่นชอบ</span><strong><CountUp value={counts.favorites} /></strong><small>FAVORITES</small></div></div>
           </div>
         </section>
 
@@ -245,8 +248,8 @@ function Profile() {
         </section>
       </div>
 
-      {showEditModal && (
-        <div className="ssp-modal-overlay" role="presentation" onMouseDown={(event) => {
+      {editModalMounted && (
+        <div className={`ssp-modal-overlay${editModalClosing ? " is-closing" : ""}`} role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setShowEditModal(false);
         }}>
           <div className="ssp-modal-panel" role="dialog" aria-modal="true" aria-label="แก้ไขโปรไฟล์">

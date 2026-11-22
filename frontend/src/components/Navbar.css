@@ -1,5 +1,5 @@
 /* ===================================================
-   SOUND SHARE — Floating Capsule Navbar
+   SoundSmile — Floating Capsule Navbar
    Inspired by the provided rounded / floating reference
    Theme: Navy #041228, Blue #19427D, Light Gray #DDDDDD
    Scoped ssn- class names avoid altering other screens.
@@ -51,51 +51,14 @@
   max-width: 100%;
 }
 
-.ssn-brand-mark {
-  position: relative;
-  flex: none;
-  width: 47px;
-  height: 47px;
-  border-radius: 17px;
-  overflow: hidden;
-  background: #080b20;
-  box-shadow: 0 3px 9px rgba(4, 18, 40, 0.14);
-}
-
-/* Crop original large logo visually; no logo asset is modified. */
-.ssn-brand-mark img {
-  position: absolute;
-  width: 172px;
-  height: auto;
-  max-width: none;
-  left: -62px;
-  top: -18px;
+/* Brand logo (SoundSmile) */
+.ssn-brand-logo {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
   pointer-events: none;
-}
-
-.ssn-brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.ssn-brand-text strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.ssn-brand-text strong span { color: #19427d; }
-
-.ssn-brand-text small {
-  color: #8490a2;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  white-space: nowrap;
 }
 
 /* Center navigation */
@@ -358,7 +321,7 @@
     grid-template-columns: minmax(170px, 1fr) auto minmax(190px, 1fr);
     padding-left: 12px;
   }
-  .ssn-brand-text small { letter-spacing: 1px; }
+  .ssn-brand-logo { height: 50px; }
   .ssn-link { padding: 8px 9px; font-size: 12px; }
   .ssn-actions { gap: 5px; }
   .ssn-primary-cta { padding: 0 15px; }
@@ -416,10 +379,7 @@
 @media (max-width: 650px) {
   .ssn-shell { padding-top: 12px; padding-bottom: 12px; }
   .ssn-pill { min-height: 60px; }
-  .ssn-brand-mark { width: 40px; height: 40px; border-radius: 14px; }
-  .ssn-brand-mark img { transform: scale(.87); transform-origin: top left; }
-  .ssn-brand-text strong { font-size: 13px; }
-  .ssn-brand-text small { font-size: 8px; letter-spacing: .85px; }
+  .ssn-brand-logo { height: 44px; }
   .ssn-account-root { display: none; }
   .ssn-register-link { display: none; }
   .ssn-primary-cta { min-height: 39px; padding: 0 12px; gap: 6px; }
@@ -433,8 +393,7 @@
   .ssn-shell { padding: 12px 9px; }
   .ssn-pill { padding-left: 11px; gap: 4px; }
   .ssn-brand { gap: 7px; }
-  .ssn-brand-text strong { font-size: 12px; }
-  .ssn-brand-text small { letter-spacing: .3px; }
+  .ssn-brand-logo { height: 38px; }
   .ssn-primary-cta { display: none; }
   .ssn-nav { left: 9px; right: 9px; }
 }

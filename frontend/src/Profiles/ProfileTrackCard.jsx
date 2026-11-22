@@ -37,7 +37,7 @@ export default function ProfileTrackCard({
       aria-label={`ดูรายละเอียดเพลง ${song.title || "Untitled"}`}
     >
       <div className="ssp-track-art">
-        <div className="ssp-track-art-fallback"><FiMusic /><span>SOUND SHARE</span></div>
+        <div className="ssp-track-art-fallback"><FiMusic /><span>SoundSmile</span></div>
         {coverUrl && (
           <img
             src={coverUrl}

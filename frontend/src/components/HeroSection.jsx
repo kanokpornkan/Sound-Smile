@@ -247,7 +247,7 @@ function HeroSection({ setSearchTerm }) {
 
           <span className="shark-eyebrow">
             <span className="shark-live-dot" />
-            SHARK SOUND / AUDIO DISCOVERY
+            SoundSmile / AUDIO DISCOVERY
           </span>
 
           <span className="shark-hero-index">
@@ -272,7 +272,7 @@ function HeroSection({ setSearchTerm }) {
           <p className="shark-hero-description">
             Discover sounds, explore new music,
             and bring your ideas to life with
-            SHARK SOUND.
+            SoundSmile.
           </p>
 
           {/* SEARCH */}
@@ -369,7 +369,7 @@ function HeroSection({ setSearchTerm }) {
 
                 <p>
                   {featuredSong?.artist ||
-                    "Discover the SHARK SOUND library"}
+                    "Discover the SoundSmile library"}
                 </p>
 
               </div>

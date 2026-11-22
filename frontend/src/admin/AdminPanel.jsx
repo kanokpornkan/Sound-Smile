@@ -84,7 +84,7 @@ export default function Adminpanel() {
       <section className="ssa-section">
         <div className="ssa-section-head">
           <div>
-            <span className="ssa-overline">SHARK SOUND ADMIN</span>
+            <span className="ssa-overline">SoundSmile ADMIN</span>
             <h2>All Users</h2>
           </div>
           <input

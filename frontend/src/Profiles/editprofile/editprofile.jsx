@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FiArrowLeft, FiCamera, FiCheck, FiImage, FiSave, FiUser } from "react-icons/fi";
+import { FiArrowLeft, FiCamera, FiCheck, FiImage, FiUser } from "react-icons/fi";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 import { SiTiktok } from "react-icons/si";
-import fallbackAvatar from "../../assets/logo.png";
+import fallbackAvatar from "../../assets/soundsmile-mark.png";
 import "./editprofile.css";
 
 const API = "http://localhost:5000";
@@ -141,7 +141,7 @@ export default function EditProfile({ onClose, onUpdate }) {
     <div className={`sse-editor ${onClose ? "sse-editor-modal" : "sse-editor-page"}`}>
       <div className="sse-editor-shell">
         <header className="sse-header">
-          <span className="sse-overline">SOUND SHARE / ACCOUNT SETTINGS</span>
+          <span className="sse-overline">SoundSmile / ACCOUNT SETTINGS</span>
           <h1>Edit your <span>profile.</span></h1>
           <p>ปรับรูปโปรไฟล์ ข้อมูลส่วนตัว และลิงก์ Social Media ของคุณ</p>
         </header>
@@ -187,7 +187,7 @@ export default function EditProfile({ onClose, onUpdate }) {
             </div>
             <div className="sse-footer-actions">
               <button type="button" className="sse-cancel" onClick={closeEditor} disabled={loading}><FiArrowLeft /> ยกเลิก</button>
-              <button type="submit" className="sse-save" disabled={loading}>{loading ? <><FiSave /> กำลังบันทึก...</> : <><FiCheck /> บันทึกการเปลี่ยนแปลง</>}</button>
+              <button type="submit" className="sse-save" disabled={loading}>{loading ? <><i className="ss-spinner" aria-hidden="true" /> กำลังบันทึก...</> : <><FiCheck /> บันทึกการเปลี่ยนแปลง</>}</button>
             </div>
           </div>
         </form>

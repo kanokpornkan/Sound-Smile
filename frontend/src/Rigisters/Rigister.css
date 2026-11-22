@@ -1,4 +1,4 @@
-/* SOUND SHARE — scoped authentication styles. No global body/input overrides. */
+/* SoundSmile — scoped authentication styles. No global body/input overrides. */
 .ss-auth-page,
 .ss-auth-page * { box-sizing: border-box; }
 
@@ -69,6 +69,15 @@
   align-items: center;
   gap: 12px;
   width: fit-content;
+}
+
+.ss-auth-logo {
+  display: block;
+  height: 72px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.25));
 }
 
 .ss-auth-brand-icon {

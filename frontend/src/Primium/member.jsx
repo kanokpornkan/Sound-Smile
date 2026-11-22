@@ -13,6 +13,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import "./member.css";
+import useModalPresence from "../motion/useModalPresence";
 
 const API_URL = "http://localhost:5000";
 // รหัสแผนต้องตรงกับค่า plan ที่ Backend เก็บใน MongoDB
@@ -94,6 +95,7 @@ function Member() {
   const [selectedPlan, setSelectedPlan] = useState("");
   const [code, setCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
+  const [codeBoxMounted, codeBoxClosing] = useModalPresence(showCodeBox);
   const [redeemError, setRedeemError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -324,7 +326,7 @@ function Member() {
                   <ul className="ssm-plan-features">
                     <li><FaCheck aria-hidden="true" />{plan.downloads}</li>
                     <li><FaCheck aria-hidden="true" />{plan.uploads}</li>
-                    <li><FaCheck aria-hidden="true" />เข้าถึงคลังเสียงของ SOUND SHARE</li>
+                    <li><FaCheck aria-hidden="true" />เข้าถึงคลังเสียงของ SoundSmile</li>
                   </ul>
 
                   {isCurrent ? (
@@ -373,9 +375,9 @@ function Member() {
         )}
       </div>
 
-      {showCodeBox && (
+      {codeBoxMounted && (
         <div
-          className="ssm-modal-backdrop"
+          className={`ssm-modal-backdrop${codeBoxClosing ? " is-closing" : ""}`}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) closeRedeem();
           }}
@@ -419,6 +421,7 @@ function Member() {
                 </Link>
               )}
               <button type="submit" className="ssm-modal-submit" disabled={redeeming}>
+                {redeeming && <span className="ss-spinner" aria-hidden="true" />}
                 {redeeming ? "กำลังตรวจสอบรหัส..." : "ยืนยันการใช้รหัส"}
                 {!redeeming && <FaArrowRight aria-hidden="true" />}
               </button>

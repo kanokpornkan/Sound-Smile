@@ -2,17 +2,22 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 import AdminHeader from "./AdminHeader";
 import "./AdminTheme.css";
+import { CheckIcon } from "../motion/ButtonContent";
 
 function AdminGenCode() {
   const [plan, setPlan] = useState("SOCOZY");
   const [code, setCode] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const copyCode = (text) =>
     navigator.clipboard
       .writeText(text)
-      .then(() =>
-        Swal.fire({ title: "Copied!", text: "The code has been copied to clipboard.", icon: "success", timer: 1500, showConfirmButton: false })
-      )
+      .then(() => {
+        // Feedback บนปุ่ม + Toast เลื่อนเข้าจากด้านข้าง
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+        Swal.fire({ toast: true, position: "top-end", title: "Copied!", text: "The code has been copied to clipboard.", icon: "success", timer: 1600, showConfirmButton: false, timerProgressBar: true });
+      })
       .catch(() => Swal.fire("Error", "Failed to copy code", "error"));
 
   const generate = async () => {
@@ -81,7 +86,9 @@ function AdminGenCode() {
             <div className="ssa-result">
               <small>YOUR CODE</small>
               <span className="ssa-code">{code}</span>
-              <button className="ssa-btn outline" onClick={() => copyCode(code)}>Copy</button>
+              <button className="ssa-btn outline ss-copy-btn" onClick={() => copyCode(code)} aria-live="polite">
+                {copied ? <><CheckIcon /> Copied</> : "Copy"}
+              </button>
             </div>
           )}
         </div>

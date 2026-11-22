@@ -15,7 +15,7 @@ import {
   FaTimes,
   FaUserCircle,
 } from "react-icons/fa";
-import logo from "../assets/logo.png";
+import logo from "../assets/soundsmile-logo.png";
 import "./Navbar.css";
 
 const API_URL = "http://localhost:5000";
@@ -44,6 +44,7 @@ function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const socketRef = useRef(null);
   const adminRef = useRef(null);
@@ -52,6 +53,24 @@ function Navbar() {
   const headerRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Navbar เปลี่ยนสถานะอย่างนุ่มนวลเมื่อเลื่อนหน้าจอ (เงาเข้มขึ้น + โลโก้ย่อเล็กน้อย)
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setIsScrolled(window.scrollY > 12);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   const fetchLimits = async (id) => {
     try {
@@ -283,17 +302,11 @@ function Navbar() {
     `ssn-link${isActive ? " ssn-link-active" : ""}`;
 
   return (
-    <header className="ssn-shell" ref={headerRef}>
+    <header className={`ssn-shell${isScrolled ? " is-scrolled" : ""}`} ref={headerRef}>
       <div className="ssn-pill">
-        {/* Brand: ยังคงใช้โลโก้ไฟล์เดิมของโปรเจกต์ */}
-        <Link to="/" className="ssn-brand" aria-label="Sound Share — Home">
-          <span className="ssn-brand-mark" aria-hidden="true">
-            <img src={logo} alt="" />
-          </span>
-          <span className="ssn-brand-text">
-            <strong>SOUND <span>SHARE</span></strong>
-            <small>CREATOR PLATFORM</small>
-          </span>
+        {/* Brand: โลโก้ SoundSmile */}
+        <Link to="/" className="ssn-brand" aria-label="SoundSmile — Home">
+          <img className="ssn-brand-logo" src={logo} alt="SoundSmile" />
         </Link>
 
         {/* Desktop + Mobile navigation */}
@@ -389,6 +402,7 @@ function Navbar() {
                 aria-label={`Notifications${unreadCount ? ` (${unreadCount})` : ""}`}
                 aria-expanded={showNotifications}
                 aria-haspopup="true"
+                data-tooltip="การแจ้งเตือน"
               >
                 <FaBell size={17} />
                 {unreadCount > 0 && <span className="ssn-notification-dot" />}
@@ -425,6 +439,7 @@ function Navbar() {
                 aria-label="Open account menu"
                 aria-haspopup="menu"
                 aria-expanded={showAccountMenu}
+                data-tooltip="บัญชีของฉัน"
               >
                 <img src={avatarUrl} alt="Profile" className="ssn-avatar" />
                 <FaChevronDown size={10} className="ssn-account-chevron" />

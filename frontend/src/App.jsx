@@ -22,6 +22,10 @@ import AdminAnalytics from "./admin/AdminAnalytics";
 import UserAnalytics from "./analytic/UserAnalytics";
 import AdminGenCode from "./admin/AdminGenCode";
 import AdminCodeHistory from "./admin/AdminCodeHistory";
+import MotionManager from "./motion/MotionManager";
+import PageTransition from "./motion/PageTransition";
+import ScrollProgress from "./motion/ScrollProgress";
+import BackToTop from "./motion/BackToTop";
 
 function AppWrapper() {
   const location = useLocation();
@@ -59,8 +63,11 @@ function AppWrapper() {
 
   return (
     <>
+      <MotionManager />
+      <ScrollProgress />
       <Navbar setSearchTerm={setSearchTerm} showSearch={showSearch} />
 
+      <PageTransition>
       <Routes>
         {/* Home */}
         <Route
@@ -112,8 +119,10 @@ function AppWrapper() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/qa" element={<QandA />} />
       </Routes>
+      </PageTransition>
 
       <Footer />
+      <BackToTop />
     </>
   );
 }

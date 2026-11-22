@@ -283,7 +283,7 @@ export default function UploadSong() {
 
         <header className="ss-upload-hero">
           <span className="ss-upload-eyebrow">
-            SHARK SOUND / CREATOR STUDIO
+            SoundSmile / CREATOR STUDIO
           </span>
           <h1>
             Upload your <span>sound.</span>
@@ -629,7 +629,7 @@ export default function UploadSong() {
               </div>
 
               <button type="submit" disabled={uploading}>
-                <FaCloudUploadAlt />
+                {uploading ? <i className="ss-spinner" aria-hidden="true" /> : <FaCloudUploadAlt />}
                 {uploading
                   ? progress === 100
                     ? "กำลังบันทึก..."

@@ -4,6 +4,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./SongList.css";
+import CountUp from "../motion/CountUp";
+import { SkeletonSongGrid } from "../motion/Skeleton";
 
 const BASE_URL = "http://localhost:5000";
 
@@ -18,6 +20,7 @@ function SongList({ searchTerm }) {
   const [durations, setDurations] = useState({});
   const [currentTimes, setCurrentTimes] = useState({});
   const [volumes, setVolumes] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
   const audioRefs = useRef({});
   const navigate = useNavigate();
@@ -70,6 +73,8 @@ function SongList({ searchTerm }) {
       }
     } catch (err) {
       console.error("Error loading songs:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -386,6 +391,15 @@ function SongList({ searchTerm }) {
         className={`ss-song-card ${isPlaying ? "is-playing" : ""}`}
         key={song._id}
         onClick={() => navigate(`/song/${song._id}`)}
+        tabIndex={0}
+        role="link"
+        aria-label={`เปิดรายละเอียดเพลง ${song.title || ""}`}
+        onKeyDown={(event) => {
+          // รองรับ Keyboard: กด Enter ที่การ์ดเพื่อเปิดรายละเอียด (ไม่กระทบปุ่มภายในการ์ด)
+          if (event.key === "Enter" && event.target === event.currentTarget) {
+            navigate(`/song/${song._id}`);
+          }
+        }}
       >
         {/* ARTWORK */}
         <div className={`ss-song-cover ${song.coverPath ? "has-cover" : ""}`}>
@@ -409,7 +423,7 @@ function SongList({ searchTerm }) {
           <div className="ss-art-orbit ss-art-orbit-two" />
 
           <div className="ss-art-content">
-            <span className="ss-art-label">SHARK SOUND</span>
+            <span className="ss-art-label">SoundSmile</span>
 
             <div className={`ss-record ${isPlaying ? "spinning" : ""}`}>
               <div className="ss-record-center">SS</div>
@@ -641,7 +655,7 @@ function SongList({ searchTerm }) {
         <div className="ss-section-heading">
           <div>
             <span className="ss-section-overline">
-              SHARK SOUND COLLECTION
+              SoundSmile COLLECTION
             </span>
 
             <h2>{title}</h2>
@@ -662,11 +676,13 @@ function SongList({ searchTerm }) {
           </div>
 
           <span className="ss-section-count">
-            {String(list.length).padStart(2, "0")} TRACKS
+            {isLoading ? "— —" : String(list.length).padStart(2, "0")} TRACKS
           </span>
         </div>
 
-        {list.length > 0 ? (
+        {isLoading ? (
+          <SkeletonSongGrid count={title.includes("Explore") ? 6 : 3} />
+        ) : list.length > 0 ? (
           <div className="ss-song-grid">
             {list.map((song, index) =>
               renderSongBox(song, index)
@@ -708,14 +724,14 @@ function SongList({ searchTerm }) {
 
             <div className="ss-hero-stats">
               <div>
-                <strong>{songs.length}</strong>
+                <strong><CountUp value={songs.length} /></strong>
                 <span>AVAILABLE TRACKS</span>
               </div>
 
               <div className="ss-hero-divider" />
 
               <div>
-                <strong>{favorites.length}</strong>
+                <strong><CountUp value={favorites.length} /></strong>
                 <span>YOUR FAVORITES</span>
               </div>
             </div>

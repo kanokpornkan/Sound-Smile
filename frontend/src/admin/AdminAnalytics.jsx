@@ -4,6 +4,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import "./AdminTheme.css";
+import Swal from "sweetalert2";
+import CountUp from "../motion/CountUp";
+import { SkeletonBlock, SkeletonRows } from "../motion/Skeleton";
 
 const TABS = [
   { id: "all", label: "All" },
@@ -35,6 +38,7 @@ function AdminAnalytics() {
   const [usersGrowth, setUsersGrowth] = useState([]);
   const [uploadsDownloads, setUploadsDownloads] = useState([]);
   const [topSongs, setTopSongs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,7 +52,18 @@ function AdminAnalytics() {
         setTopSongs(topSongsRes.data);
       } catch (err) {
         console.error(err);
-        alert("โหลดข้อมูล Analytics ไม่สำเร็จ");
+        // แจ้งเตือนแบบนุ่มนวล (Toast) แทน alert()
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "โหลดข้อมูล Analytics ไม่สำเร็จ",
+          showConfirmButton: false,
+          timer: 3200,
+          timerProgressBar: true,
+        });
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -87,11 +102,11 @@ function AdminAnalytics() {
           <p>ภาพรวมทั้งระบบ: ผู้ใช้ {totalUsers} คน · อัปโหลด {totalUploads} เพลง · ดาวน์โหลด {totalDownloads} ครั้ง</p>
         </div>
         <div className="ssd-stats">
-          <div><span>Users</span><strong>{totalUsers}</strong></div>
+          <div><span>Users</span><strong><CountUp value={totalUsers} /></strong></div>
           <div className="ssd-divider" />
-          <div><span>Uploads</span><strong>{totalUploads}</strong></div>
+          <div><span>Uploads</span><strong><CountUp value={totalUploads} /></strong></div>
           <div className="ssd-divider" />
-          <div><span>Downloads</span><strong>{totalDownloads}</strong></div>
+          <div><span>Downloads</span><strong><CountUp value={totalDownloads} /></strong></div>
         </div>
       </section>
 
@@ -119,7 +134,9 @@ function AdminAnalytics() {
           </div>
 
           <div className="ssd-panel">
-            {data.length === 0 ? (
+            {loading ? (
+              <SkeletonBlock height="100%" dark />
+            ) : data.length === 0 ? (
               <div className="ssa-chart-empty"><b>♫</b>ยังไม่มีข้อมูล</div>
             ) : (
               <ResponsiveContainer>
@@ -135,15 +152,15 @@ function AdminAnalytics() {
                   <Tooltip {...TIP} labelFormatter={isUsers ? shortDate : undefined} />
                   {tab === "all" && <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: "#DDE6F3" }} />}
                   {isUsers && (
-                    <Line type="monotone" dataKey="totalUsers" name="ผู้ใช้ทั้งหมด" stroke={C.users}
+                    <Line animationDuration={900} animationEasing="ease-out" type="monotone" dataKey="totalUsers" name="ผู้ใช้ทั้งหมด" stroke={C.users}
                       strokeWidth={2.5} dot={{ r: 3.5 }} activeDot={{ r: 5 }} />
                   )}
                   {(tab === "all" || tab === "uploads") && (
-                    <Line type="monotone" dataKey="uploads" name="Uploads" stroke={C.uploads}
+                    <Line animationDuration={900} animationEasing="ease-out" type="monotone" dataKey="uploads" name="Uploads" stroke={C.uploads}
                       strokeWidth={2.5} dot={{ r: 3.5 }} activeDot={{ r: 5 }} />
                   )}
                   {(tab === "all" || tab === "downloads") && (
-                    <Line type="monotone" dataKey="downloads" name="Downloads" stroke={C.downloads}
+                    <Line animationDuration={900} animationEasing="ease-out" type="monotone" dataKey="downloads" name="Downloads" stroke={C.downloads}
                       strokeWidth={2.5} dot={{ r: 3.5 }} activeDot={{ r: 5 }} />
                   )}
                 </LineChart>
@@ -162,7 +179,9 @@ function AdminAnalytics() {
             <span className="ssd-top">Top {topSongs.length}</span>
           </div>
 
-          {topSongs.length === 0 ? (
+          {loading ? (
+            <SkeletonRows count={5} dark />
+          ) : topSongs.length === 0 ? (
             <div className="ssd-panel" style={{ height: 200 }}>
               <div className="ssa-chart-empty"><b>♫</b>ยังไม่มีข้อมูล</div>
             </div>

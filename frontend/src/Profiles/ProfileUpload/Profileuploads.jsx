@@ -7,6 +7,7 @@ import ProfileTrackCard from "../ProfileTrackCard";
 import useProfileAudio from "../useProfileAudio";
 import { PROFILE_API, downloadProfileSong, getStoredProfile, getToken, showLoginRequired } from "../profileActions";
 import "./Profileuploads.css";
+import { SkeletonRows } from "../../motion/Skeleton";
 
 function Profileuploads() {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ function Profileuploads() {
   };
 
   if (loading) {
-    return <div className="ssp-panel-state"><FiMusic /><h3>กำลังโหลดเพลงของคุณ...</h3></div>;
+    return <div className="ssp-panel-skeleton"><SkeletonRows count={4} /></div>;
   }
 
   return (

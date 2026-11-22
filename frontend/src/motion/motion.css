@@ -1,0 +1,790 @@
+/* =====================================================================
+   SoundSmile — Motion System
+   ระบบ Animation กลางของทั้งเว็บ (โหลดหลัง CSS ของทุก component)
+   - ใช้ transform / opacity เป็นหลัก (ไม่ทำให้ Layout Shift)
+   - ใช้ property `translate` / `scale` แยกจาก `transform`
+     เพื่อไม่ชนกับ transform เดิมของปุ่ม (เช่น translateY(-50%))
+   - รองรับ prefers-reduced-motion
+   ===================================================================== */
+
+:root {
+  /* Durations */
+  --ss-dur-instant: 120ms;
+  --ss-dur-fast: 180ms;      /* button hover */
+  --ss-dur-card: 260ms;      /* card hover */
+  --ss-dur-menu: 200ms;      /* dropdown */
+  --ss-dur-modal: 300ms;     /* modal */
+  --ss-dur-page: 340ms;      /* page transition */
+  --ss-dur-reveal: 560ms;    /* scroll reveal */
+
+  /* Easings */
+  --ss-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ss-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ss-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1); /* เด้งเบา ๆ */
+
+  /* Brand */
+  --ss-motion-navy: #041228;
+  --ss-motion-blue: #19427d;
+  --ss-motion-sky: #4b83cf;
+  --ss-motion-glow: 0 0 0 4px rgba(75, 131, 207, 0.16), 0 12px 28px rgba(25, 66, 125, 0.28);
+}
+
+/* ---------------------------------------------------------------------
+   1. Buttons — hover lift, press, spring back
+   :where() = specificity 0 → สไตล์เดิมของแต่ละ component ยังชนะเสมอ
+--------------------------------------------------------------------- */
+:where(button, [role="button"], .ssh-btn, .ssn-primary-cta, a[class*="btn"]) {
+  transition-property: background-color, border-color, color, box-shadow, opacity, translate, scale;
+  transition-duration: var(--ss-dur-fast), var(--ss-dur-fast), var(--ss-dur-fast), var(--ss-dur-fast),
+    var(--ss-dur-fast), var(--ss-dur-fast), 320ms;
+  transition-timing-function: var(--ss-ease-out), var(--ss-ease-out), var(--ss-ease-out), var(--ss-ease-out),
+    var(--ss-ease-out), var(--ss-ease-out), var(--ss-ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  :where(button, [role="button"], .ssh-btn, a[class*="btn"]):not(:disabled):not([aria-disabled="true"]):hover {
+    translate: 0 -1px;
+  }
+}
+
+:where(button, [role="button"], .ssh-btn, .ssn-primary-cta, a[class*="btn"]):not(:disabled):active {
+  scale: 0.96;
+  transition-duration: 90ms;
+}
+
+/* ปุ่มสำคัญ: เพิ่ม Glow บาง ๆ ตอน hover */
+@media (hover: hover) {
+  .ss-auth-primary:not(:disabled):hover,
+  .ssn-primary-cta:hover,
+  .ssh-btn:hover,
+  .ssm-modal-submit:not(:disabled):hover,
+  .ss-upload-submit button:not(:disabled):hover,
+  .ss-play-btn:hover {
+    box-shadow: var(--ss-motion-glow);
+  }
+}
+
+/* Focus visible ที่ชัดเจนสำหรับ keyboard */
+:where(a, button, summary, [tabindex]:not([tabindex="-1"]), [role="button"]):focus-visible {
+  outline: 3px solid rgba(75, 131, 207, 0.6);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------
+   2. Ripple (สร้างโดย MotionManager)
+--------------------------------------------------------------------- */
+.ss-ripple-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ss-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  translate: -50% -50%;
+  scale: 0;
+  opacity: 0.32;
+  animation: ss-ripple 600ms var(--ss-ease-out) forwards;
+}
+
+@keyframes ss-ripple {
+  to { scale: 1; opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------
+   3. Button states: spinner / success check / error shake
+--------------------------------------------------------------------- */
+.ss-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.ss-btn-label { display: inline-block; animation: ss-fade-in 220ms var(--ss-ease-out); }
+
+.ss-spinner {
+  flex: 0 0 auto;
+  width: 1.05em;
+  height: 1.05em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0.9;
+  animation: ss-spin 700ms linear infinite;
+}
+
+@keyframes ss-spin { to { rotate: 360deg; } }
+
+.ss-check {
+  flex: 0 0 auto;
+  width: 1.2em;
+  height: 1.2em;
+  animation: ss-pop 360ms var(--ss-ease-spring);
+}
+
+.ss-check path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: ss-draw 420ms 120ms var(--ss-ease-out) forwards;
+}
+
+@keyframes ss-draw { to { stroke-dashoffset: 0; } }
+@keyframes ss-pop { from { scale: 0.4; opacity: 0; } to { scale: 1; opacity: 1; } }
+@keyframes ss-icon-swap { from { opacity: 0; rotate: -90deg; scale: 0.6; } to { opacity: 1; rotate: 0deg; scale: 1; } }
+@keyframes ss-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.ss-shake { animation: ss-shake 380ms var(--ss-ease-out); }
+
+@keyframes ss-shake {
+  20% { translate: -5px 0; }
+  40% { translate: 4px 0; }
+  60% { translate: -3px 0; }
+  80% { translate: 2px 0; }
+}
+
+/* ---------------------------------------------------------------------
+   4. Cards — lift, dynamic shadow, border tint, image zoom, press
+--------------------------------------------------------------------- */
+.ss-song-card,
+.ssp-stat-card,
+.ssm-stat-card,
+.ssm-plan-grid > article,
+.ss-card,
+.ssd-card,
+.ssh-step,
+.ssh-card,
+.ssp-track-card,
+.ss-upload-panel {
+  transition:
+    translate var(--ss-dur-card) var(--ss-ease-out),
+    scale 220ms var(--ss-ease-spring),
+    box-shadow var(--ss-dur-card) var(--ss-ease-out),
+    border-color var(--ss-dur-card) var(--ss-ease-out);
+}
+
+@media (hover: hover) {
+  .ssp-stat-card:hover,
+  .ssm-stat-card:hover,
+  .ssm-plan-grid > article:hover,
+  .ss-card:hover,
+  .ssd-card:hover,
+  .ssh-step:hover,
+  .ssp-track-card:hover {
+    translate: 0 -4px;
+    box-shadow: 0 18px 38px rgba(4, 18, 40, 0.13);
+  }
+
+  .ssp-stat-card:hover,
+  .ssm-stat-card:hover,
+  .ssh-step:hover { border-color: rgba(25, 66, 125, 0.32); }
+
+  .ss-song-card:hover { translate: 0 -5px; }
+
+  /* ไอคอนในการ์ดขยับเล็กน้อย */
+  .ssp-stat-card:hover .ssp-stat-icon,
+  .ssh-step:hover .ssh-icon {
+    scale: 1.08;
+    rotate: -4deg;
+  }
+}
+
+.ssp-stat-icon,
+.ssh-icon,
+.ssh-step-link svg,
+.ssh-btn svg,
+.ssn-primary-cta svg {
+  transition: scale 260ms var(--ss-ease-spring), rotate 260ms var(--ss-ease-out), translate 220ms var(--ss-ease-out);
+}
+
+.ssh-step:hover .ssh-step-link svg,
+.ssh-btn:hover svg,
+.ssn-primary-cta:hover svg:last-child { translate: 3px 0; }
+
+/* รูปในการ์ดซูมเล็กน้อย */
+.ss-song-cover,
+.ssp-track-art { overflow: hidden; }
+
+.ss-song-cover-image,
+.ssp-track-art img { transition: scale 500ms var(--ss-ease-out); }
+
+@media (hover: hover) {
+  .ss-song-card:hover .ss-song-cover-image,
+  .ssp-track-card:hover .ssp-track-art img { scale: 1.06; }
+}
+
+/* Press animation สำหรับการ์ดที่คลิกได้ */
+.ss-song-card:active,
+a.ssh-step:active { scale: 0.985; }
+
+.ss-song-card { cursor: pointer; }
+.ss-song-card:focus-visible {
+  outline: 3px solid rgba(75, 131, 207, 0.7);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------
+   5. Forms & inputs
+--------------------------------------------------------------------- */
+:where(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select) {
+  transition: border-color var(--ss-dur-fast) var(--ss-ease-out),
+    box-shadow var(--ss-dur-fast) var(--ss-ease-out),
+    background-color var(--ss-dur-fast) var(--ss-ease-out);
+}
+
+.ss-auth-field input:focus {
+  box-shadow: 0 0 0 4px rgba(75, 131, 207, 0.16), 0 6px 18px rgba(25, 66, 125, 0.08);
+}
+
+.ss-auth-field.is-invalid input { border-color: #d77a7a; }
+.ss-auth-field.is-invalid input:focus { box-shadow: 0 0 0 4px rgba(215, 122, 122, 0.16); }
+.ss-auth-field.is-valid input { border-color: #6fb38d; }
+
+.ss-field-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  animation: ss-msg-in 260ms var(--ss-ease-out);
+}
+
+.ss-field-msg.is-error { color: #b94444; }
+.ss-field-msg.is-ok { color: #2f8a5c; }
+
+@keyframes ss-msg-in {
+  from { opacity: 0; translate: 0 -4px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* Password strength meter */
+.ss-strength {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.ss-strength i {
+  height: 4px;
+  border-radius: 4px;
+  background: #e3e8f0;
+  transition: background-color 260ms var(--ss-ease-out);
+}
+
+.ss-strength[data-level="1"] i:nth-child(-n + 1) { background: #d77a7a; }
+.ss-strength[data-level="2"] i:nth-child(-n + 2) { background: #e0a85a; }
+.ss-strength[data-level="3"] i:nth-child(-n + 3) { background: #4b83cf; }
+.ss-strength[data-level="4"] i:nth-child(-n + 4) { background: #2f8a5c; }
+
+/* ปุ่มแสดงรหัสผ่าน: สลับไอคอนแบบนุ่มนวล */
+.ss-eye-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.ss-eye-icon svg {
+  grid-area: 1 / 1;
+  font-size: 17px;
+  transition: opacity 200ms var(--ss-ease-out), scale 260ms var(--ss-ease-spring), rotate 260ms var(--ss-ease-out);
+}
+
+.ss-eye-icon .is-hidden { opacity: 0; scale: 0.5; rotate: -30deg; }
+
+/* Search bars ขยาย/เรืองแสงเมื่อ focus */
+.shark-search-box { transition: box-shadow var(--ss-dur-card) var(--ss-ease-out), scale var(--ss-dur-card) var(--ss-ease-out); }
+.shark-search-box:focus-within {
+  scale: 1.015;
+  box-shadow: 0 0 0 4px rgba(160, 190, 230, 0.22), 0 18px 40px rgba(1, 10, 26, 0.28);
+}
+
+.ssa-search { transition: box-shadow var(--ss-dur-fast) var(--ss-ease-out), border-color var(--ss-dur-fast) var(--ss-ease-out); }
+.ssa-search:focus { box-shadow: 0 0 0 4px rgba(75, 131, 207, 0.2); }
+
+/* ---------------------------------------------------------------------
+   6. Scroll reveal (MotionManager ใส่ class ให้เมื่อเลื่อนมาถึง)
+--------------------------------------------------------------------- */
+.ss-reveal-pending { opacity: 0; }
+
+.ss-reveal-in {
+  animation: ss-reveal-up var(--ss-dur-reveal) var(--ss-ease-out) both;
+  animation-delay: var(--ss-reveal-delay, 0ms);
+}
+
+.ss-reveal-in[data-reveal="left"] { animation-name: ss-reveal-left; }
+.ss-reveal-in[data-reveal="right"] { animation-name: ss-reveal-right; }
+.ss-reveal-in[data-reveal="scale"] { animation-name: ss-reveal-scale; }
+
+@keyframes ss-reveal-up {
+  from { opacity: 0; translate: 0 22px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes ss-reveal-left {
+  from { opacity: 0; translate: -26px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes ss-reveal-right {
+  from { opacity: 0; translate: 26px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes ss-reveal-scale {
+  from { opacity: 0; scale: 0.95; }
+  to { opacity: 1; scale: 1; }
+}
+
+/* ---------------------------------------------------------------------
+   7. Page transition
+--------------------------------------------------------------------- */
+.ss-page-transition {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------
+   8. Skeleton loading
+--------------------------------------------------------------------- */
+.ss-skel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #e6eaf1;
+}
+
+.ss-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: -100% 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: ss-shimmer 1.3s ease-in-out infinite;
+}
+
+.ss-skel-dark { background: rgba(255, 255, 255, 0.07); }
+.ss-skel-dark::after { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent); }
+
+@keyframes ss-shimmer { to { translate: 100% 0; } }
+
+.ss-skel-line { height: 12px; }
+.ss-skel-line.is-lg { height: 18px; }
+.ss-skel-line.w-40 { width: 40%; }
+.ss-skel-line.w-60 { width: 60%; }
+.ss-skel-line.w-80 { width: 80%; }
+
+.ss-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px solid rgba(4, 18, 40, 0.08);
+  box-shadow: 0 8px 24px rgba(4, 18, 40, 0.05);
+}
+
+.ss-skel-card .ss-skel-cover { aspect-ratio: 16 / 10; border-radius: 16px; }
+
+.ss-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.ss-skel-row .ss-skel-avatar { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px; }
+.ss-skel-row .ss-skel-lines { flex: 1; display: grid; gap: 8px; }
+
+.ss-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 22px;
+}
+
+.ss-sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Empty state เข้ามาเบา ๆ */
+.ss-empty-state,
+.ssa-chart-empty,
+.ssp-panel-state { animation: ss-reveal-scale 420ms var(--ss-ease-out) both; }
+
+.ss-empty-state .ss-empty-icon { display: inline-block; transition: scale 300ms var(--ss-ease-spring), rotate 300ms var(--ss-ease-out); }
+.ss-empty-state:hover .ss-empty-icon { scale: 1.15; rotate: -8deg; }
+
+/* ---------------------------------------------------------------------
+   9. Scroll progress + Back to top
+--------------------------------------------------------------------- */
+.ss-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5000;
+  height: 3px;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #19427d, #4b83cf, #a9ccf8);
+  box-shadow: 0 0 10px rgba(75, 131, 207, 0.5);
+  will-change: transform;
+}
+
+.ss-back-to-top {
+  position: fixed;
+  right: clamp(14px, 3vw, 30px);
+  bottom: clamp(16px, 3vw, 30px);
+  z-index: 3000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 20px;
+  background: linear-gradient(135deg, #041228, #19427d);
+  box-shadow: 0 12px 28px rgba(4, 18, 40, 0.3);
+  cursor: pointer;
+  opacity: 0;
+  translate: 0 18px;
+  scale: 0.8;
+  visibility: hidden;
+  transition:
+    opacity 260ms var(--ss-ease-out),
+    translate 320ms var(--ss-ease-out),
+    scale 320ms var(--ss-ease-spring),
+    visibility 0s linear 320ms,
+    box-shadow var(--ss-dur-fast) var(--ss-ease-out);
+}
+
+.ss-back-to-top.is-visible {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ss-back-to-top.is-visible:hover { translate: 0 -3px; box-shadow: var(--ss-motion-glow); }
+.ss-back-to-top.is-visible:active { scale: 0.92; }
+.ss-back-to-top svg { transition: translate 220ms var(--ss-ease-out); }
+.ss-back-to-top:hover svg { translate: 0 -2px; }
+
+/* ---------------------------------------------------------------------
+   10. Sliding indicators (Navbar, Tabs, Filters, Footer)
+--------------------------------------------------------------------- */
+.ss-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 999px;
+  transition:
+    transform 380ms var(--ss-ease-out),
+    width 380ms var(--ss-ease-out),
+    height 380ms var(--ss-ease-out),
+    opacity 200ms var(--ss-ease-out);
+}
+
+.ss-indicator.is-ready { opacity: 1; }
+.ss-indicator.no-anim { transition: opacity 200ms var(--ss-ease-out); }
+
+.ss-ind-host > :not(.ss-indicator) { position: relative; z-index: 1; }
+
+/* Navbar */
+.ss-ind-host.ssn-nav .ss-indicator { background: #edf3fb; }
+.ss-ind-host.ssn-nav .ssn-link-active { background: transparent; }
+.ss-ind-host.ssn-nav .ssn-link { transition: color 220ms var(--ss-ease-out), background-color 220ms var(--ss-ease-out); }
+@media (max-width: 980px) {
+  .ss-ind-host.ssn-nav .ss-indicator { border-radius: 14px; }
+}
+
+/* Help tabs + Footer */
+.ss-ind-host.ssh-tabs .ss-indicator,
+.ss-ind-host.ssf-links .ss-indicator { background: #ffffff; box-shadow: 0 4px 14px rgba(1, 10, 26, 0.25); }
+.ss-ind-host.ssh-tabs .ssh-tab-active,
+.ss-ind-host.ssf-links .ssf-link-active { background: transparent; }
+
+/* Profile library tabs */
+.ss-ind-host.ssp-tab-list .ss-indicator { background: #19427d; border-radius: 12px; box-shadow: 0 8px 18px rgba(25, 66, 125, 0.25); }
+.ss-ind-host.ssp-tab-list .ssp-tab.is-active { background: transparent; }
+.ssp-tab { transition: color 220ms var(--ss-ease-out), background-color 220ms var(--ss-ease-out); }
+
+/* User analytics filter */
+.ss-ind-host.ss-filter-row .ss-indicator { background: #ffffff; border-radius: 10px; }
+.ss-ind-host.ss-filter-row .ss-filter-btn.is-active { background-color: transparent; }
+
+/* Admin analytics pills */
+.ss-ind-host.ssd-pills .ss-indicator { background: #dddddd; border-radius: 10px; }
+.ss-ind-host.ssd-pills .ssd-pill.active { background: transparent; }
+
+/* ---------------------------------------------------------------------
+   11. Navbar: scroll state, mobile menu, dropdown
+--------------------------------------------------------------------- */
+.ssn-pill {
+  transition: box-shadow 300ms var(--ss-ease-out), border-color 300ms var(--ss-ease-out),
+    background-color 300ms var(--ss-ease-out);
+}
+
+.ssn-brand-logo { transition: scale 300ms var(--ss-ease-out); transform-origin: left center; }
+
+.ssn-shell.is-scrolled .ssn-pill {
+  border-color: rgba(4, 18, 40, 0.08);
+  box-shadow: 0 14px 38px rgba(4, 18, 40, 0.16), 0 1px 3px rgba(4, 18, 40, 0.06);
+}
+
+.ssn-shell.is-scrolled .ssn-brand-logo { scale: 0.92; }
+
+.ssn-dropdown { animation-duration: var(--ss-dur-menu) !important; animation-timing-function: var(--ss-ease-out) !important; }
+
+/* Mobile menu: เปิด/ปิดแบบ fade + slide ทั้งสองทาง */
+@media (max-width: 980px) {
+  .ssn-nav {
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
+    translate: 0 -10px;
+    scale: 0.98;
+    transform-origin: top center;
+    pointer-events: none;
+    transition: opacity 220ms var(--ss-ease-out), translate 260ms var(--ss-ease-out),
+      scale 260ms var(--ss-ease-out), visibility 0s linear 260ms;
+  }
+
+  .ssn-nav.ssn-nav-open {
+    visibility: visible;
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+
+  .ssn-nav.ssn-nav-open > * { animation: ss-reveal-up 340ms var(--ss-ease-out) both; }
+  .ssn-nav.ssn-nav-open > *:nth-child(2) { animation-delay: 30ms; }
+  .ssn-nav.ssn-nav-open > *:nth-child(3) { animation-delay: 60ms; }
+  .ssn-nav.ssn-nav-open > *:nth-child(4) { animation-delay: 90ms; }
+  .ssn-nav.ssn-nav-open > *:nth-child(5) { animation-delay: 120ms; }
+  .ssn-nav.ssn-nav-open > *:nth-child(n + 6) { animation-delay: 150ms; }
+  .ssn-nav.ssn-nav-open > .ss-indicator { animation: none; }
+
+  /* ไอคอน ☰ / ✕ สลับพร้อมหมุนเข้า */
+  .ssn-mobile-toggle svg { animation: ss-icon-swap 280ms var(--ss-ease-spring); }
+}
+
+/* ---------------------------------------------------------------------
+   12. Accordion (Q&A) — ความสูงเปลี่ยนแบบนุ่มนวลด้วย JS
+--------------------------------------------------------------------- */
+details.ss-smooth { overflow: hidden; }
+details.ss-smooth > summary ~ * { transition: opacity 240ms var(--ss-ease-out); }
+details.ss-smooth:not([open]) > summary ~ * { opacity: 0; }
+
+/* ---------------------------------------------------------------------
+   13. Tooltip (MotionManager แสดงสำหรับ [data-tooltip])
+--------------------------------------------------------------------- */
+.ss-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6000;
+  max-width: 220px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  color: #ffffff;
+  background: rgba(4, 18, 40, 0.94);
+  box-shadow: 0 10px 24px rgba(4, 18, 40, 0.25);
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 4px;
+  transition: opacity 160ms var(--ss-ease-out), translate 200ms var(--ss-ease-out);
+}
+
+.ss-tooltip.is-visible { opacity: 1; translate: 0 0; }
+
+/* ---------------------------------------------------------------------
+   14. Modals (Profile edit, Premium redeem) — scale + fade, reverse on close
+--------------------------------------------------------------------- */
+.ssp-modal-overlay,
+.ssm-modal-backdrop { animation: ss-backdrop-in var(--ss-dur-modal) var(--ss-ease-out) both; }
+
+.ssp-modal-panel,
+.ssm-modal { animation: ss-modal-in var(--ss-dur-modal) var(--ss-ease-out) both; }
+
+.ssp-modal-overlay.is-closing,
+.ssm-modal-backdrop.is-closing { animation: ss-backdrop-out 220ms var(--ss-ease-in-out) both; }
+
+.ssp-modal-overlay.is-closing .ssp-modal-panel,
+.ssm-modal-backdrop.is-closing .ssm-modal { animation: ss-modal-out 220ms var(--ss-ease-in-out) both; }
+
+@keyframes ss-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ss-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ss-modal-in {
+  from { opacity: 0; scale: 0.94; translate: 0 12px; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes ss-modal-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.96; translate: 0 8px; }
+}
+
+/* ---------------------------------------------------------------------
+   15. SweetAlert2 — popup, confirm, toast ให้เข้าธีม
+--------------------------------------------------------------------- */
+.swal2-container.swal2-backdrop-show { background: rgba(3, 12, 28, 0.55) !important; backdrop-filter: blur(5px); }
+
+.swal2-popup:not(.swal2-toast) {
+  border-radius: 22px !important;
+  font-family: "Poppins", "Segoe UI", sans-serif !important;
+  color: #041228 !important;
+  box-shadow: 0 25px 70px rgba(1, 10, 25, 0.3) !important;
+}
+
+.swal2-popup.swal2-show:not(.swal2-toast) { animation: ss-modal-in 300ms var(--ss-ease-out) !important; }
+.swal2-popup.swal2-hide:not(.swal2-toast) { animation: ss-modal-out 200ms var(--ss-ease-in-out) forwards !important; }
+
+.swal2-styled.swal2-confirm {
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #041228, #19427d) !important;
+  box-shadow: 0 8px 20px rgba(25, 66, 125, 0.25) !important;
+  font-weight: 700 !important;
+  padding: 0.7em 1.6em !important;
+}
+
+.swal2-styled.swal2-cancel,
+.swal2-styled.swal2-deny {
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  padding: 0.7em 1.6em !important;
+}
+
+.swal2-styled:focus-visible { box-shadow: 0 0 0 3px rgba(75, 131, 207, 0.5) !important; }
+
+/* Toast เลื่อนเข้าจากด้านข้าง */
+.swal2-popup.swal2-toast {
+  border-radius: 14px !important;
+  font-family: "Poppins", "Segoe UI", sans-serif !important;
+  box-shadow: 0 14px 34px rgba(4, 18, 40, 0.2) !important;
+  border-left: 4px solid #19427d;
+}
+
+.swal2-popup.swal2-toast.swal2-icon-success { border-left-color: #2f8a5c; }
+.swal2-popup.swal2-toast.swal2-icon-error { border-left-color: #c44d4d; }
+.swal2-popup.swal2-toast.swal2-icon-warning { border-left-color: #e0a85a; }
+
+.swal2-popup.swal2-toast.swal2-show { animation: ss-toast-in 380ms var(--ss-ease-out) !important; }
+.swal2-popup.swal2-toast.swal2-hide { animation: ss-toast-out 240ms var(--ss-ease-in-out) forwards !important; }
+
+@keyframes ss-toast-in {
+  from { opacity: 0; translate: 110% 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes ss-toast-out {
+  to { opacity: 0; translate: 110% 0; }
+}
+
+/* ---------------------------------------------------------------------
+   16. Tables — hover highlight
+--------------------------------------------------------------------- */
+:where(table) tbody tr { transition: background-color var(--ss-dur-fast) var(--ss-ease-out); }
+:where(.ssa-table-wrap, .ssa-card) tbody tr:hover { background-color: rgba(120, 165, 225, 0.08); }
+
+/* ---------------------------------------------------------------------
+   17. Accessibility — ลด animation ตามการตั้งค่าระบบ
+--------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .ss-reveal-pending { opacity: 1; }
+  .ss-skel::after { display: none; }
+}
+
+/* ---------------------------------------------------------------------
+   18. Page-specific touches
+--------------------------------------------------------------------- */
+.ss-auth-primary .ss-spinner,
+.ss-auth-google .ss-spinner { font-size: 15px; }
+.ss-auth-primary .ss-check { font-size: 17px; }
+.ss-auth-primary.is-success,
+.ss-auth-primary.is-success:disabled { opacity: 1; background: #2f8a5c; cursor: default; }
+.ss-auth-arrow { display: inline-block; transition: translate 220ms var(--ss-ease-out); }
+.ss-auth-primary:hover .ss-auth-arrow { translate: 4px 0; }
+.ss-auth-google .ss-auth-google-mark { transition: rotate 300ms var(--ss-ease-out); }
+.ss-auth-google:hover .ss-auth-google-mark { rotate: -10deg; }
+.ss-auth-eye { display: inline-flex; align-items: center; justify-content: center; }
+
+.ssm-modal-submit .ss-spinner { font-size: 14px; }
+
+.ssp-panel-skeleton { padding: 12px 22px 18px; }
+
+/* Song card: ปุ่มไอคอนในการ์ดขยับเล็กน้อย */
+.ss-cover-play svg,
+.ss-play-btn svg,
+.ss-download-btn svg { transition: scale 240ms var(--ss-ease-spring); }
+.ss-cover-play:hover svg,
+.ss-play-btn:hover svg,
+.ss-download-btn:hover svg { scale: 1.15; }
+
+/* Upload: progress bar ลื่นขึ้น + แสงวิ่ง */
+.ss-upload-progress div {
+  position: relative;
+  overflow: hidden;
+  transition: width 300ms var(--ss-ease-out);
+}
+.ss-upload-progress div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: -100% 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: ss-shimmer 1.1s ease-in-out infinite;
+}
+.ss-upload-submit button .ss-spinner { font-size: 15px; }
+.ss-copy-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }

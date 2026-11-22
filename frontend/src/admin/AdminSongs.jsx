@@ -235,7 +235,7 @@ function AdminSongs() {
       <section className="ssa-section">
         <div className="ssa-section-head">
           <div>
-            <span className="ssa-overline">SHARK SOUND COLLECTION</span>
+            <span className="ssa-overline">SoundSmile COLLECTION</span>
             <h2>All Songs</h2>
           </div>
           <span className="ssa-count">{String(songs.length).padStart(2, "0")} TRACKS</span>

@@ -7,6 +7,7 @@ import ProfileTrackCard from "../ProfileTrackCard";
 import useProfileAudio from "../useProfileAudio";
 import { PROFILE_API, downloadProfileSong, getStoredProfile, getToken, showLoginRequired } from "../profileActions";
 import "./Profilefovorites.css";
+import { SkeletonRows } from "../../motion/Skeleton";
 
 function Profilefavorites() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ function Profilefavorites() {
     await downloadProfileSong(song, getToken());
   };
 
-  if (loading) return <div className="ssp-panel-state"><FiHeart /><h3>กำลังโหลดรายการโปรด...</h3></div>;
+  if (loading) return <div className="ssp-panel-skeleton"><SkeletonRows count={4} /></div>;
 
   return (
     <div className="ssp-favorites-list">

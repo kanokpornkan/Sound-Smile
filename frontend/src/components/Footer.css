@@ -1,55 +1,164 @@
-.footer {
-  background: #0A071E;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    box-sizing: border-box;
-  color: #fff;
-  text-align: center;
-  padding: 30px 0;
-  display: flex;
-  flex-direction: column;
+/* ===================================================
+   SoundSmile — Footer
+   Theme: Navy #041228, Blue #19427D, Light Gray #DDDDDD
+   ใช้โทนเดียวกับ Hero / Profile / Login (navy → blue gradient)
+=================================================== */
+
+.ssf-footer {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 10px clamp(12px, 3.5vw, 44px) 22px;
+  background: #dddddd;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  box-sizing: border-box;
+}
+
+.ssf-footer *,
+.ssf-footer *::before,
+.ssf-footer *::after { box-sizing: border-box; }
+
+.ssf-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 1330px;
+  margin: 0 auto;
+  padding: 30px clamp(22px, 4vw, 50px) 18px;
+  border-radius: 26px;
+  color: #f3f6fc;
+  background:
+    radial-gradient(ellipse at 88% 0%, rgba(45, 96, 172, 0.35), transparent 45%),
+    linear-gradient(112deg, #041228 0%, #0a2345 55%, #19427d 100%);
+  box-shadow: 0 18px 45px rgba(4, 18, 40, 0.14);
+}
+
+/* เส้นลายเฉียงบาง ๆ แบบเดียวกับ Hero */
+.ssf-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(119deg, transparent 0 70px, rgba(221, 221, 221, 0.03) 71px 72px);
+}
+
+.ssf-main {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 24px;
+  padding-bottom: 22px;
 }
 
-/* โลโก้ด้านบน */
-.footer-logo-img {
-  width: 90px; /* ปรับขนาดโลโก้ได้ */
-  height: auto;
-  opacity: 0.9;
+.ssf-brand {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
 }
 
-/* ลิงก์ Help | Q&A | Contact */
-.footer-links {
+.ssf-logo {
+  display: block;
+  height: 66px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* ลิงก์ Help | Q&A | About | Contact */
+.ssf-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(192, 214, 246, 0.16);
 }
 
-.footer-links a {
-  color: #fff;
+.ssf-link {
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: #c1d0e5;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
-  font-size: 14px;
-  transition: 0.3s ease;
+  transition: background 160ms ease, color 160ms ease;
 }
 
-.footer-links a:hover {
-  color: #0af;
+.ssf-link:hover,
+.ssf-link:focus-visible {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
 }
+
+.ssf-link-active {
+  color: #041228;
+  background: #ffffff;
+}
+
+.ssf-link-active:hover { color: #041228; background: #e6eefa; }
 
 /* ไอคอน Social */
-.footer-socials {
+.ssf-socials {
   display: flex;
-  gap: 18px;
-  margin-top: 6px;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.footer-socials a {
-  color: #fff;
-  font-size: 20px;
-  transition: 0.3s ease;
+.ssf-socials a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #c5dcf8;
+  font-size: 16px;
+  border: 1px solid rgba(163, 195, 236, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.footer-socials a:hover {
-  color: #0af;
-  transform: scale(1.15);
+.ssf-socials a:hover,
+.ssf-socials a:focus-visible {
+  color: #041228;
+  background: #ffffff;
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.ssf-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+  color: #a8bbd4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .ssf-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 18px;
+  }
+  .ssf-socials { justify-content: center; }
+  .ssf-bottom { justify-content: center; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .ssf-footer { padding: 8px 9px 14px; }
+  .ssf-panel { border-radius: 20px; padding-top: 24px; }
+  .ssf-logo { height: 54px; }
+  .ssf-link { padding: 7px 11px; font-size: 12px; }
+  .ssf-bottom { font-size: 9px; letter-spacing: 1px; }
 }

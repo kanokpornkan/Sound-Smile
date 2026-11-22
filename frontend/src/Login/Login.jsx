@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Login.css";
+import logoLight from "../assets/soundsmile-logo-light.png";
+import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import { CheckIcon } from "../motion/ButtonContent";
 
 const API_URL = "http://localhost:5000";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const WAVE_HEIGHTS = [25, 39, 58, 42, 73, 88, 53, 38, 66, 91, 74, 49, 32, 61, 83, 98, 69, 43, 56, 84, 72, 47, 30, 58, 80, 96, 64, 44, 71, 54, 36, 22];
 
 function GoogleMark() {
@@ -23,6 +27,9 @@ function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [touched, setTouched] = useState({ email: false });
+  const submitRef = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const googleToken = searchParams.get("token");
@@ -62,6 +69,18 @@ function Login() {
     setForm((previous) => ({ ...previous, [name]: value }));
   };
 
+  // ปุ่มสั่นเบา ๆ เมื่อเกิดข้อผิดพลาด
+  const shakeButton = () => {
+    const el = submitRef.current;
+    if (!el) return;
+    el.classList.remove("ss-shake");
+    void el.offsetWidth;
+    el.classList.add("ss-shake");
+  };
+
+  const emailInvalid = touched.email && form.email !== "" && !EMAIL_PATTERN.test(form.email);
+  const emailValid = form.email !== "" && EMAIL_PATTERN.test(form.email);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (loading) return;
@@ -82,10 +101,13 @@ function Login() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(userResponse.data));
       window.dispatchEvent(new Event("userLoggedIn"));
+      setSuccess(true); // แสดงเครื่องหมายถูกบนปุ่มก่อนพาไปหน้าแรก
       Swal.fire({ icon: "success", title: "เข้าสู่ระบบสำเร็จ", timer: 1400, showConfirmButton: false });
+      await new Promise((resolve) => setTimeout(resolve, 650));
       navigate("/");
       window.location.href = "/"
     } catch (error) {
+      shakeButton();
       Swal.fire({
         icon: "error",
         title: "เข้าสู่ระบบไม่สำเร็จ",
@@ -103,16 +125,15 @@ function Login() {
   return (
     <main className="ss-auth-page ss-auth-login-page">
       <div className="ss-auth-shell">
-        <section className="ss-auth-story" aria-label="เกี่ยวกับ Sound Share">
+        <section className="ss-auth-story" aria-label="เกี่ยวกับ SoundSmile">
           <div className="ss-auth-brand">
-            <div className="ss-auth-brand-icon" aria-hidden="true"><i/><i/><i/><i/><i/></div>
-            <div><strong>SOUND <span>SHARE</span></strong><small>CREATOR PLATFORM</small></div>
+            <img className="ss-auth-logo" src={logoLight} alt="SoundSmile" />
           </div>
 
           <div className="ss-auth-story-main">
             <span className="ss-auth-overline"><span className="ss-auth-dot"/> YOUR CREATIVE SPACE</span>
             <h2>Welcome back.<br/><em>Make some noise.</em></h2>
-            <p>กลับเข้าสู่โลกของเสียง ค้นพบแรงบันดาลใจใหม่ ๆ และต่อยอดผลงานของคุณใน SOUND SHARE</p>
+            <p>กลับเข้าสู่โลกของเสียง ค้นพบแรงบันดาลใจใหม่ ๆ และต่อยอดผลงานของคุณใน SoundSmile</p>
             <div className="ss-auth-waveframe" aria-hidden="true">
               <div className="ss-auth-wave-top"><span>NOW PLAYING</span><span>01 / 04</span></div>
               <div className="ss-auth-wave">
@@ -122,7 +143,7 @@ function Login() {
             </div>
           </div>
 
-          <div className="ss-auth-story-footer"><span>THE SOUND STARTS HERE</span><span>EST. SOUND SHARE</span></div>
+          <div className="ss-auth-story-footer"><span>THE SOUND STARTS HERE</span><span>EST. SoundSmile</span></div>
         </section>
 
         <section className="ss-auth-form-panel">
@@ -134,9 +155,10 @@ function Login() {
             <p className="ss-auth-intro">เข้าสู่บัญชีของคุณเพื่อฟัง จัดเก็บ และแบ่งปันเสียงที่ชื่นชอบ</p>
 
             <form className="ss-auth-form" onSubmit={handleSubmit}>
-              <div className="ss-auth-field">
+              <div className={`ss-auth-field${emailInvalid ? " is-invalid" : emailValid && touched.email ? " is-valid" : ""}`}>
                 <label htmlFor="ss-login-email">อีเมล <span>*</span></label>
-                <input id="ss-login-email" type="email" name="email" value={form.email} onChange={handleChange} placeholder="yourname@example.com" autoComplete="email" required disabled={loading || googleLoading}/>
+                <input id="ss-login-email" type="email" name="email" value={form.email} onChange={handleChange} placeholder="yourname@example.com" autoComplete="email" required disabled={loading || googleLoading} onBlur={() => setTouched((t) => ({ ...t, email: true }))} aria-invalid={emailInvalid} aria-describedby={emailInvalid ? "ss-login-email-msg" : undefined}/>
+                {emailInvalid && <small id="ss-login-email-msg" className="ss-field-msg is-error"><FiAlertCircle aria-hidden="true" /> รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com</small>}
               </div>
 
               <div className="ss-auth-field">
@@ -144,24 +166,30 @@ function Login() {
                 <div className="ss-auth-password-wrap">
                   <input id="ss-login-password" type={showPassword ? "text" : "password"} name="password" value={form.password} onChange={handleChange} placeholder="กรอกรหัสผ่านของคุณ" autoComplete="current-password" required disabled={loading || googleLoading}/>
                   <button type="button" className="ss-auth-eye" aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>
-                    {showPassword ? "ซ่อน" : "แสดง"}
+                    <span className="ss-eye-icon" aria-hidden="true">
+                      <FiEye className={showPassword ? "is-hidden" : ""} />
+                      <FiEyeOff className={showPassword ? "" : "is-hidden"} />
+                    </span>
                   </button>
                 </div>
               </div>
 
-              <button className="ss-auth-primary" type="submit" disabled={loading || googleLoading}>
-                {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}<span aria-hidden="true">→</span>
+              <button ref={submitRef} className={`ss-auth-primary${success ? " is-success" : ""}`} type="submit" disabled={loading || googleLoading || success}>
+                {loading && !success && <i className="ss-spinner" aria-hidden="true" />}
+                {success && <CheckIcon />}
+                {success ? "เข้าสู่ระบบสำเร็จ" : loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+                {!loading && !success && <span className="ss-auth-arrow" aria-hidden="true">→</span>}
               </button>
             </form>
 
             <div className="ss-auth-divider"><span>หรือเข้าสู่ระบบด้วย</span></div>
             <button className="ss-auth-google" type="button" onClick={googleLogin} disabled={loading || googleLoading}>
-              <GoogleMark /> Google
+              {googleLoading ? <i className="ss-spinner" aria-hidden="true" /> : <GoogleMark />} Google
             </button>
             <p className="ss-auth-switch">ยังไม่มีบัญชีใช่ไหม? <Link to="/register">สมัครสมาชิกฟรี <span aria-hidden="true">↗</span></Link></p>
           </div>
 
-          <p className="ss-auth-footer-note">SOUND SHARE · LISTEN. CREATE. SHARE.</p>
+          <p className="ss-auth-footer-note">SoundSmile · LISTEN. CREATE. SHARE.</p>
         </section>
       </div>
     </main>

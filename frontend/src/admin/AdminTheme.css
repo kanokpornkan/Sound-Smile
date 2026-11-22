@@ -1,4 +1,4 @@
-/* SHARK SOUND - ADMIN THEME (ใช้ร่วมกันทุกหน้า admin) */
+/* SoundSmile - ADMIN THEME (ใช้ร่วมกันทุกหน้า admin) */
 .ss-admin{--bg:#DDDDDD;--blue:#19427D;--navy:#041228;--white:#F8F9FC;--muted:#8290A2;
   min-height:100vh;padding:55px clamp(20px,6vw,90px) 100px;background:var(--bg);color:var(--navy);
   font-family:"Poppins","Segoe UI",sans-serif;text-align:left;box-sizing:border-box}

@@ -10,6 +10,8 @@ import {
   Tooltip,
 } from "chart.js";
 import "./UserAnalytics.css";
+import CountUp from "../motion/CountUp";
+import { SkeletonRows } from "../motion/Skeleton";
 
 ChartJS.register(
   LineElement,
@@ -140,8 +142,21 @@ function UserAnalytics() {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    // กราฟค่อย ๆ วาดขึ้นตอนแสดงผล และเปลี่ยน filter อย่างนุ่มนวล
+    animation: { duration: 750, easing: "easeOutQuart" },
+    transitions: { show: { animation: { duration: 450 } }, hide: { animation: { duration: 350 } } },
+    interaction: { mode: "index", intersect: false },
     plugins: {
       legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(4, 18, 40, 0.95)",
+        borderColor: "rgba(160, 190, 230, 0.25)",
+        borderWidth: 1,
+        padding: 10,
+        cornerRadius: 10,
+        displayColors: true,
+        boxPadding: 4,
+      },
     },
     scales: {
       x: {
@@ -176,14 +191,14 @@ function UserAnalytics() {
             <div className="ss-quota-item">
               <span>Uploads</span>
               <strong>
-                {limits.uploadCount} / {limits.maxUpload}
+                <CountUp value={limits.uploadCount} /> / {limits.maxUpload}
               </strong>
             </div>
             <div className="ss-quota-divider" />
             <div className="ss-quota-item">
               <span>Downloads</span>
               <strong>
-                {limits.downloadCount} / {limits.maxDownload}
+                <CountUp value={limits.downloadCount} /> / {limits.maxDownload}
               </strong>
             </div>
           </div>
@@ -250,7 +265,7 @@ function UserAnalytics() {
             </div>
 
             {loadingTop ? (
-              <p className="ss-empty-text">กำลังโหลดอันดับเพลง...</p>
+              <SkeletonRows count={5} dark />
             ) : sortedFavorites.length === 0 ? (
               <p className="ss-empty-text">ยังไม่มีข้อมูลเพลงที่ถูกกด Favorite</p>
             ) : (
