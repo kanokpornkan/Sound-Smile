@@ -409,3 +409,24 @@
     overflow-y: auto;
   }
 }
+
+
+/* เอาพื้นหลังดำ/เทาของ SweetAlert ออกเฉพาะ toast */
+.swal2-container {
+  z-index: 100000 !important;
+}
+
+/* ลบพื้นหลังทุกชนิดของ container ที่มี toast อยู่ข้างใน */
+.swal2-container:has(.swal2-toast),
+body.swal2-toast-shown > .swal2-container {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* เงาของกล่อง toast ให้บางและนุ่ม ไม่เป็นเงาดำ */
+.swal2-popup.swal2-toast {
+  box-shadow: 0 6px 20px rgba(4, 18, 40, 0.12) !important;
+  border: 1px solid rgba(4, 18, 40, 0.08);
+}
