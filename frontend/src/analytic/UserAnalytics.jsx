@@ -2,215 +2,294 @@ import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
+  LineElement,
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Title,
-  Tooltip,
   Legend,
+  Tooltip,
 } from "chart.js";
 import "./UserAnalytics.css";
 
 ChartJS.register(
+  LineElement,
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
+  Legend,
+  Tooltip
 );
 
 const API_BASE = "http://localhost:5000";
 
 function UserAnalytics() {
-  const [analyticsData, setAnalyticsData] = useState({
-    uploads: 0,
-    downloads: 0,
-    uploadLimit: 0,
-    downloadLimit: 0,
-    topSongs: [],
+  const [filter, setFilter] = useState("all");
+  const [topFavoriteSongs, setTopFavoriteSongs] = useState([]);
+  const [limits, setLimits] = useState({
+    uploadCount: 0,
+    downloadCount: 0,
+    maxUpload: 3,
+    maxDownload: 5,
   });
-  const [topFavorites, setTopFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadingTop, setLoadingTop] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-    const fetchAnalytics = async () => {
+    const fetchTopFavorites = async () => {
       try {
-        setLoading(true);
-        setError("");
-
-        // ดึงข้อมูล analytics เดิม (uploads / downloads / limits / top songs)
-        const resAnalytics = await fetch(`${API_BASE}/api/analytics/user`, {
-          headers,
-        });
-        if (resAnalytics.ok) {
-          const data = await resAnalytics.json();
-          setAnalyticsData((prev) => ({
-            ...prev,
-            uploads: data.uploads ?? data.uploadCount ?? 0,
-            downloads: data.downloads ?? data.downloadCount ?? 0,
-            uploadLimit: data.uploadLimit ?? 0,
-            downloadLimit: data.downloadLimit ?? 0,
-            topSongs: Array.isArray(data.topSongs) ? data.topSongs : [],
-          }));
-        }
-
-        // ดึงข้อมูลเพลงที่กดถูกใจมากสุด (Top Favorite Songs)
-        const resFav = await fetch(`${API_BASE}/api/songs/top-likes`, {
-          headers,
-        });
-        if (resFav.ok) {
-          const favData = await resFav.json();
-          const list = Array.isArray(favData)
-            ? favData
-            : Array.isArray(favData.songs)
-            ? favData.songs
-            : [];
-          setTopFavorites(list);
+        const res = await fetch(`${API_BASE}/api/songs/top-likes`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setTopFavoriteSongs(data);
+          }
         }
       } catch (err) {
-        console.error("Error fetching analytics:", err);
-        setError("ไม่สามารถเชื่อมต่อข้อมูลจากเซิร์ฟเวอร์ได้");
+        console.error("Error fetching top liked songs:", err);
       } finally {
-        setLoading(false);
+        setLoadingTop(false);
       }
     };
 
-    fetchAnalytics();
+    const fetchUserAnalytics = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const analyticsRes = await fetch(`${API_BASE}/api/analytics/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (analyticsRes.ok) {
+          const analyticsData = await analyticsRes.json();
+          setLimits({
+            uploadCount: analyticsData.uploadCount ?? analyticsData.uploads ?? 0,
+            downloadCount:
+              analyticsData.downloadCount ?? analyticsData.downloads ?? 0,
+            maxUpload: analyticsData.maxUpload ?? analyticsData.uploadLimit ?? 3,
+            maxDownload:
+              analyticsData.maxDownload ?? analyticsData.downloadLimit ?? 5,
+          });
+          if (
+            Array.isArray(analyticsData.topSongs) &&
+            analyticsData.topSongs.length > 0
+          ) {
+            setTopFavoriteSongs((prev) =>
+              prev.length > 0 ? prev : analyticsData.topSongs
+            );
+          }
+          return;
+        }
+
+        const userRes = await fetch(`${API_BASE}/auth/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!userRes.ok) return;
+        const userData = await userRes.json();
+        const userId = userData?._id || userData?.id;
+        if (!userId) return;
+
+        const limRes = await fetch(`${API_BASE}/api/user/${userId}/limits`);
+        if (limRes.ok) {
+          const limData = await limRes.json();
+          setLimits({
+            uploadCount: limData.uploadCount ?? 0,
+            downloadCount: limData.downloadCount ?? 0,
+            maxUpload: limData.maxUpload ?? 3,
+            maxDownload: limData.maxDownload ?? 5,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching user analytics:", err);
+      }
+    };
+
+    fetchTopFavorites();
+    fetchUserAnalytics();
   }, []);
 
-  const chartData = {
-    labels: ["Uploads", "Downloads"],
+  const data = {
+    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     datasets: [
       {
-        label: "count",
-        data: [analyticsData.uploads, analyticsData.downloads],
-        borderColor: "#4da3ff",
-        backgroundColor: "rgba(77, 163, 255, 0.25)",
-        pointBackgroundColor: "#63b3ed",
-        pointBorderColor: "#041228",
-        pointRadius: 5,
-        tension: 0.3,
+        label: "Download",
+        data: [12, 19, 10, 25, 20, 30, 15],
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56, 189, 248, 0.2)",
+        tension: 0.35,
+        hidden: filter !== "all" && filter !== "download",
+      },
+      {
+        label: "Play",
+        data: [8, 14, 20, 18, 25, 35, 30],
+        borderColor: "#60a5fa",
+        backgroundColor: "rgba(96, 165, 250, 0.2)",
+        tension: 0.35,
+        hidden: filter !== "all" && filter !== "play",
+      },
+      {
+        label: "Favorite",
+        data: [5, 8, 12, 15, 10, 20, 18],
+        borderColor: "#f472b6",
+        backgroundColor: "rgba(244, 114, 182, 0.2)",
+        tension: 0.35,
+        hidden: filter !== "all" && filter !== "favorite",
       },
     ],
   };
 
-  const chartOptions = {
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        labels: {
-          color: "#DDDDDD",
-        },
-      },
+      legend: { display: false },
     },
     scales: {
       x: {
         ticks: { color: "#DDDDDD" },
-        grid: { color: "rgba(221, 221, 221, 0.12)" },
+        grid: { color: "rgba(221, 221, 221, 0.1)" },
       },
       y: {
         beginAtZero: true,
-        ticks: {
-          color: "#DDDDDD",
-          stepSize: 1,
-        },
-        grid: { color: "rgba(221, 221, 221, 0.12)" },
+        ticks: { color: "#DDDDDD" },
+        grid: { color: "rgba(221, 221, 221, 0.1)" },
       },
     },
   };
 
+  const sortedFavorites = [...topFavoriteSongs].sort(
+    (a, b) => (Number(b.likes) || 0) - (Number(a.likes) || 0)
+  );
+
   return (
-    <div className="analytics-page">
-      <div className="analytics-container">
-        <div className="analytics-header">
-          <h1 className="analytics-title">Your Analytics</h1>
-          <p className="analytics-subtitle">
-            ภาพรวมการอัปโหลด ดาวน์โหลด และเพลงยอดนิยมที่ถูกใจมากสุด
-          </p>
-        </div>
-
-        {error && <div className="analytics-alert">{error}</div>}
-
-        {/* ส่วนบน: กราฟ Your Uploads / Downloads + ลิมิต */}
-        <section className="analytics-card">
-          <h2 className="section-heading">Your Uploads / Downloads</h2>
-
-          <div className="chart-wrapper">
-            <Line data={chartData} options={chartOptions} />
+    <div className="ss-dash-page">
+      <div className="ss-dash-shell">
+        <header className="ss-dash-topbar">
+          <div>
+            <span className="ss-dash-brand">SoundSmile</span>
+            <h1 className="ss-dash-title">User Analytics</h1>
+            <p className="ss-dash-subtitle">
+              ภาพรวมการอัปโหลด ดาวน์โหลด และเพลงยอดนิยมที่ถูกใจมากสุด
+            </p>
           </div>
 
-          <div className="limit-summary">
-            <span>
-              Upload limit: <strong>{analyticsData.uploads} / {analyticsData.uploadLimit}</strong>
-            </span>
-            <span className="limit-divider">|</span>
-            <span>
-              Download limit: <strong>{analyticsData.downloads} / {analyticsData.downloadLimit}</strong>
-            </span>
+          <div className="ss-quota-box">
+            <div className="ss-quota-item">
+              <span>Uploads</span>
+              <strong>
+                {limits.uploadCount} / {limits.maxUpload}
+              </strong>
+            </div>
+            <div className="ss-quota-divider" />
+            <div className="ss-quota-item">
+              <span>Downloads</span>
+              <strong>
+                {limits.downloadCount} / {limits.maxDownload}
+              </strong>
+            </div>
           </div>
-        </section>
+        </header>
 
-        {/* ส่วนล่าง: แบ่ง 2 คอลัมน์ ปรับโครงสร้างให้ดูบาลานซ์ขึ้น */}
-        <div className="analytics-grid">
-          {/* เนื้อหาเดิม: Top Songs in Platform */}
-          <section className="analytics-card">
-            <h2 className="section-heading">Top Songs in Platform</h2>
-            {loading ? (
-              <p className="empty-text">กำลังโหลดข้อมูล...</p>
-            ) : analyticsData.topSongs.length === 0 ? (
-              <p className="empty-text">ยังไม่มีข้อมูลเพลงในระบบ</p>
-            ) : (
-              <ul className="song-rank-list">
-                {analyticsData.topSongs.map((song, index) => (
-                  <li key={song._id || song.id || index} className="song-rank-item">
-                    <span className="rank-badge">#{index + 1}</span>
-                    <div className="song-info">
-                      <span className="song-title">{song.title || song.name || "Untitled"}</span>
-                      <span className="song-meta">
-                        {song.artist || song.uploader || "Unknown Artist"}
-                      </span>
-                    </div>
-                    <span className="song-stat">
-                      {song.downloads ?? song.plays ?? 0} downloads
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+        <div className="ss-dash-grid">
+          <section className="ss-card">
+            <div className="ss-card-head">
+              <div>
+                <h2 className="ss-card-title">Overall Performance</h2>
+                <p className="ss-card-desc">สถิติรายสัปดาห์แยกตามหมวดหมู่</p>
+              </div>
+            </div>
+
+            <div className="ss-filter-row">
+              <button
+                type="button"
+                className={`ss-filter-btn ${filter === "all" ? "is-active" : ""}`}
+                onClick={() => setFilter("all")}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`ss-filter-btn ${
+                  filter === "download" ? "is-active" : ""
+                }`}
+                onClick={() => setFilter("download")}
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                className={`ss-filter-btn ${filter === "play" ? "is-active" : ""}`}
+                onClick={() => setFilter("play")}
+              >
+                Play
+              </button>
+              <button
+                type="button"
+                className={`ss-filter-btn ${
+                  filter === "favorite" ? "is-active" : ""
+                }`}
+                onClick={() => setFilter("favorite")}
+              >
+                Favorite
+              </button>
+            </div>
+
+            <div className="ss-chart-wrap">
+              <Line data={data} options={options} />
+            </div>
           </section>
 
-          {/* ฟีเจอร์ใหม่ตามรีเควส: Top Favorite Songs */}
-          <section className="analytics-card">
-            <h2 className="section-heading">Top Favorite Songs</h2>
-            {loading ? (
-              <p className="empty-text">กำลังโหลดเพลงที่ถูกใจมากสุด...</p>
-            ) : topFavorites.length === 0 ? (
-              <p className="empty-text">ยังไม่มีข้อมูลเพลงที่ถูกใจ</p>
+          <section className="ss-card">
+            <div className="ss-card-head">
+              <div>
+                <h2 className="ss-card-title">Top Favorite Songs</h2>
+                <p className="ss-card-desc">
+                  จัดอันดับเพลงที่ถูกกด Favorite มากที่สุดใน SoundSmile
+                </p>
+              </div>
+              <span className="ss-badge">Top {sortedFavorites.length || 5}</span>
+            </div>
+
+            {loadingTop ? (
+              <p className="ss-empty-text">กำลังโหลดอันดับเพลง...</p>
+            ) : sortedFavorites.length === 0 ? (
+              <p className="ss-empty-text">ยังไม่มีข้อมูลเพลงที่ถูกกด Favorite</p>
             ) : (
-              <ul className="song-rank-list">
-                {topFavorites.map((song, index) => (
-                  <li key={song._id || song.id || index} className="song-rank-item">
-                    <span className="rank-badge rank-fav">#{index + 1}</span>
-                    <div className="song-info">
-                      <span className="song-title">{song.title || song.name || "Untitled"}</span>
-                      <span className="song-meta">
-                        {song.artist || song.uploader || "Unknown Artist"}
+              <ol className="ss-rank-list">
+                {sortedFavorites.map((song, index) => {
+                  const rank = index + 1;
+                  const rankClass =
+                    rank === 1
+                      ? "rank-1"
+                      : rank === 2
+                      ? "rank-2"
+                      : rank === 3
+                      ? "rank-3"
+                      : "";
+
+                  return (
+                    <li key={song._id || index} className="ss-rank-item">
+                      <span className={`ss-rank-num ${rankClass}`}>
+                        #{rank}
                       </span>
-                    </div>
-                    <span className="song-stat fav-stat">
-                      ♥ {song.likes ?? song.likeCount ?? song.favorites ?? 0}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+
+                      <div className="ss-rank-info">
+                        <div className="ss-rank-song" title={song.title}>
+                          {song.title || "Untitled"}
+                        </div>
+                        <div className="ss-rank-artist">
+                          {song.artist || "Unknown Artist"}
+                        </div>
+                      </div>
+
+                      <div className="ss-rank-stats">
+                        <span className="ss-like-pill">
+                          ♥ {Number(song.likes) || 0}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             )}
           </section>
         </div>
