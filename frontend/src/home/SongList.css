@@ -38,7 +38,8 @@
 
 .ss-hero {
   position: relative;
-  max-width: 1380px;
+  /* Match the width of .shark-hero-shell in HeroSection.css */
+  max-width: 1450px;
   min-height: 350px;
   margin: 0 auto 85px;
   padding: 55px 65px;
